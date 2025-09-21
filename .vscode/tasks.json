@@ -1,23 +1,27 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Build Virtual Pet",
-            "type": "shell",
-            "command": "cl",
-            "args": [
-                "/EHsc",
-                "virtual-pet.cpp",
-                "/I", "C:/Users/ander/SFML-3.0.2/include",
-                "/link",
-                "/LIBPATH:C:/Users/ander/SFML-3.0.2/lib",
-                "sfml-graphics.lib",
-                "sfml-window.lib",
-                "sfml-system.lib"
-            ],
-            "group": { "kind": "build", "isDefault": true },
-            "options": { "cwd": "${workspaceFolder}" },
-            "problemMatcher": ["$msCompile"]
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Virtual Pet",
+      "type": "shell",
+      "command": "cl",
+      "args": [
+        "/std:c++17",
+        "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/virtual-pet.cpp",
+        "/I",
+        "C:/Users/ander/SFML-3.0.2/include",
+        "/link",
+        "/LIBPATH:C:/Users/ander/SFML-3.0.2/lib",
+        "sfml-graphics.lib",
+        "sfml-window.lib",
+        "sfml-system.lib",
+        "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/bin/virtual-pet.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$msCompile"]
+    }
+  ]
 }

@@ -1,16 +1,16 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Run Virtual Pet",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/virtual-pet.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin",
-            "environment": [],
-            "console": "externalTerminal"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Virtual Pet",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/run/virtual-pet.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet",
+      "environment": [],
+      "console": "integratedTerminal"
+    }
+  ]
 }
