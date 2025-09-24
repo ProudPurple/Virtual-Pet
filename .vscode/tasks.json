@@ -8,16 +8,17 @@
       "args": [
         "/std:c++17",
         "/EHsc",
-        "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/run/virtual-pet.cpp",
+        "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/src/virtual-pet.cpp",
         "/I",
         "C:/Users/ander/SFML-3.0.2/include",
+        "/FoC:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/build/virtual-pet.obj",
         "/link",
         "/LIBPATH:C:/Users/ander/SFML-3.0.2/lib",
         "sfml-graphics.lib",
         "sfml-window.lib",
         "sfml-system.lib",
         "User32.lib",
-        "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/run/virtual-pet.exe"
+        "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/bin/virtual-pet.exe"
       ],
       "group": {
         "kind": "build",

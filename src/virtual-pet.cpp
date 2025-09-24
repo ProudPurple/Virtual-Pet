@@ -21,6 +21,8 @@ void save(Stats stats) {
 
 int main() {
     ifstream fin("stats.txt");
+    if (!fin)
+        cerr << "Fail " << filesystem::current_path() << endl;
     Stats stats;
     fin >> stats.hunger >> stats.mood >> stats.money;
     cout << stats.hunger << ' ' << stats.mood << ' ' << stats.money;
@@ -41,12 +43,10 @@ int main() {
     circle.setFillColor(Color::Green);
 
     while (window.isOpen()) {
-
-        
-
         window.clear(Color::Black);
         window.draw(circle);
         window.display();
+
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
                 window.close();
@@ -54,7 +54,6 @@ int main() {
             }
         }
             
-        
         if (Keyboard::isKeyPressed(Keyboard::Key::A))
             stats.hunger--;
     }
