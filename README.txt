@@ -1,5 +1,16 @@
 This is my fbla project
 
+open the .exe file in the bin folder
+
+
+
+
+
+
+
+
+
+
 To run/compile just press f5
 
 to save and stuff open a gitbash terminal in vscode

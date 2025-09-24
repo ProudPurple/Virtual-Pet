@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 using namespace sf;
 using namespace std;
 
@@ -21,11 +22,9 @@ void save(Stats stats) {
 
 int main() {
     ifstream fin("stats.txt");
-    if (!fin)
-        cerr << "Fail " << filesystem::current_path() << endl;
     Stats stats;
     fin >> stats.hunger >> stats.mood >> stats.money;
-    cout << stats.hunger << ' ' << stats.mood << ' ' << stats.money;
+    //MessageBox(NULL, to_string(stats.hunger).c_str(), "Debug", MB_OK);
 
     RenderWindow window(VideoMode(Vector2u(600, 400)), "Virtual Pet", Style::None, State::Windowed);
 

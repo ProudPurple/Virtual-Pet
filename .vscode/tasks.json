@@ -18,6 +18,8 @@
         "sfml-window.lib",
         "sfml-system.lib",
         "User32.lib",
+        "/SUBSYSTEM:WINDOWS",
+        "/ENTRY:mainCRTStartup",
         "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/bin/virtual-pet.exe"
       ],
       "group": {
