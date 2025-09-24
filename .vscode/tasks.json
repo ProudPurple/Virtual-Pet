@@ -7,7 +7,8 @@
       "command": "cl",
       "args": [
         "/std:c++17",
-        "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/virtual-pet.cpp",
+        "/EHsc",
+        "C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/run/virtual-pet.cpp",
         "/I",
         "C:/Users/ander/SFML-3.0.2/include",
         "/link",
@@ -15,7 +16,8 @@
         "sfml-graphics.lib",
         "sfml-window.lib",
         "sfml-system.lib",
-        "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/bin/virtual-pet.exe"
+        "User32.lib",
+        "/OUT:C:/Users/ander/OneDrive/Desktop/Work/Coding/FBLA-Project/Virtual-Pet/run/virtual-pet.exe"
       ],
       "group": {
         "kind": "build",
