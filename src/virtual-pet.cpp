@@ -23,8 +23,16 @@ void save(Stats stats) {
 }
 
 void statDecay(Stats& stats) {
+    int frame = 0;
     while (true) {
+        frame++;
         stats.hunger--;
+
+        if (frame % 10 == 0)
+            stats.money += 5;
+        if (frame % 4 == 0)
+            stats.mood -= 5;
+
         this_thread::sleep_for(chrono::seconds(1));
     }
 }
@@ -51,26 +59,36 @@ int main() {
     HWND hwnd = window.getNativeHandle();
     LONG style = GetWindowLong(hwnd, GWL_EXSTYLE);
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
+    SetLayeredWindowAttributes(hwnd, RGB(255,0,255), 0, LWA_COLORKEY);
 
     Texture texture;
-    if (!texture.loadFromFile("sprites/cat1.png"))
+    if (!texture.loadFromFile("sprites/catNormal.png"))
         MessageBox(NULL, "cat1.png", "Error", MB_OK);
     RectangleShape spriteBase({200.f, 200.f});
     spriteBase.setTexture(&texture);
+    
 
     Font font("bin/RasterForgeRegular-JpBgm.ttf");
-    Text text(font);
-    text.setString(to_string(stats.hunger));
-    text.setCharacterSize(20);
-    text.setFillColor(Color::Green);
-    text.setStyle(Text::Bold);
+    Text hText(font);
+    hText.setString(to_string(stats.hunger));
+    hText.setCharacterSize(20);
+    hText.setFillColor(Color::Green);
+    hText.setStyle(Text::Bold);
+    Text dText(font);
+    dText.setString(to_string(stats.hunger));
+    dText.setCharacterSize(20);
+    dText.setFillColor(Color::Green);
+    dText.setStyle(Text::Bold);
+    dText.setPosition(Vector2f(0, 30));
+    
 
     while (window.isOpen()) {
-        window.clear(Color::Black);
+        window.clear(Color(255,0,255));
         window.draw(spriteBase);
-        window.draw(text);
-        text.setString(to_string(stats.hunger));
+        window.draw(hText);
+        window.draw(dText);
+        hText.setString(to_string(stats.hunger));
+        dText.setString(to_string(stats.money));
         window.display();
 
         while (const optional event = window.pollEvent()) {
@@ -78,17 +96,28 @@ int main() {
                 window.close();
                 save(stats);
             }
+            
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                    if (spriteBase.getGlobalBounds().contains(mousePos)) {
+                        stats.hunger++;
+                    }
+                }
+            }
 
             if (const auto* keyPressed = event->getIf<Event::KeyPressed>()) {             
                 if (Keyboard::isKeyPressed(Keyboard::Key::A))
                     stats.hunger -= 5;
             }
         }
+
+
         if (stats.hunger <= 0) {
             if (mood != "Mad") {
                 static Texture madCatTexture;
-                if (!madCatTexture.loadFromFile("sprites/cat2.png")) {
-                    MessageBox(NULL, "cat2.png", "Error", MB_OK);
+                if (!madCatTexture.loadFromFile("sprites/catMad.png")) {
+                    MessageBox(NULL, "catMad.png", "Error", MB_OK);
                 } else {
                     spriteBase.setTexture(&madCatTexture);
                     mood = "Mad";
