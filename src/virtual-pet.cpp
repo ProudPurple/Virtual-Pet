@@ -10,11 +10,6 @@
 using namespace sf;
 using namespace std;
 
-
-
-
-//DO MORE CONDITION STUFF LIKE BAR STUFF AND DO MOOD TEXTURE FUNCTION WOOHOO
-
 struct Stats {
     int hunger;
     int mood;
@@ -74,8 +69,42 @@ Texture currentTexture(string mood) {
             MessageBox(NULL, "Base Sprite Texture", "Load Error", MB_OK);
         return texture;
     }
-
 } 
+
+string enterName(RenderWindow& window, Font font) {
+    string name = "HELLO";
+    bool typing = true;
+    Text nameText(font);
+    nameText.setCharacterSize(20);
+    nameText.setPosition({200,200});
+    nameText.setFillColor(Color::Green);
+
+    Text q(font);
+    q.setCharacterSize(25);
+    q.setPosition({100,100});
+    q.setFillColor(Color::Green);
+    q.setString("What is Your Pets Name?");
+    while (window.isOpen() && typing) {
+        window.clear(Color(255,0,255));
+        window.draw(nameText);
+        window.draw(q);
+        nameText.setString(name);
+        window.display();
+        while (const optional event = window.pollEvent()) {
+            if (const auto* textEntered = event->getIf<Event::TextEntered>()) {
+                char text = textEntered->unicode;
+                if (text == 8 && name.size() > 0)
+                    name.pop_back();
+                else if (text == 13)
+                    typing = false;
+                else if (name.size() <= 10 && text != 8)
+                    name += text;
+            }
+        }
+        //MessageBox(NULL, name.c_str(), "Debug", MB_OK);
+    }
+    return name;
+}
 
 int main() {
     //Takes in saved stats from txt file
@@ -86,7 +115,7 @@ int main() {
 
     thread hungerDecay(statDecay, ref(stats));
     //Can copy paste line for in context erroring
-    //MessageBox(NULL, to_string(stats.hunger).c_str(), "Debug", MB_OK);
+    //MessageBox(NULL, "hELLO".c_str(), "Debug", MB_OK);
 
     //Make window and set some basic stuff
     RenderWindow window(VideoMode(Vector2u(600, 400)), "Virtual Pet", Style::None, State::Windowed);
@@ -127,21 +156,27 @@ int main() {
     hText.setString(to_string(stats.hunger));
     hText.setCharacterSize(20);
     hText.setFillColor(Color::Green);
-    hText.setStyle(Text::Bold);
     Text dText(font);
     dText.setString(to_string(stats.hunger));
     dText.setCharacterSize(20);
     dText.setFillColor(Color::Green);
-    dText.setStyle(Text::Bold);
     dText.setPosition(Vector2f(0, 30));
+
+    string name = enterName(window, font);
+    Text nameText(font);
+    nameText.setString(name);
+    nameText.setCharacterSize(20);
+    nameText.setFillColor(Color::Green);
+    nameText.setPosition({0,60});
+
     while (window.isOpen()) {
-            
         window.clear(Color(255,0,255));
         window.draw(spriteBase);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
         }
         window.draw(barBase);
+        window.draw(nameText);
         window.draw(hText);
         window.draw(dText);
 
@@ -165,10 +200,10 @@ int main() {
                 }
             }
 
-            if (const auto* keyPressed = event->getIf<Event::KeyPressed>()) {             
+            if (const auto* keyPressed = event->getIf<Event::KeyPressed>()) {           
                 if (Keyboard::isKeyPressed(Keyboard::Key::A))
                     stats.hunger -= 5;
-            } 
+            }
         }
 
         barManagment(stats, barHelpers);
