@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <string>
 using namespace sf;
 using namespace std;
@@ -37,6 +38,40 @@ void statDecay(Stats& stats) {
     }
 }
 
+void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
+    if (stats.hunger <= 0)
+        barHelpers[0].setFillColor(Color(5,51,6));
+    else if (stats.hunger <= 25)
+        barHelpers[1].setFillColor(Color(5,51,6));
+    else if (stats.hunger <= 50)
+        barHelpers[2].setFillColor(Color(5,51,6));
+    else if (stats.hunger <= 75)
+        barHelpers[3].setFillColor(Color(5,51,6));
+
+    if (stats.hunger > 75)
+        barHelpers[3].setFillColor(Color(18,219,18));
+    else if (stats.hunger > 50)
+        barHelpers[2].setFillColor(Color(18,219,18));
+    else if (stats.hunger > 25)
+        barHelpers[1].setFillColor(Color(18,219,18));
+    else if (stats.hunger > 0)
+        barHelpers[0].setFillColor(Color(18,219,18));
+}
+
+Texture currentTexture(string mood) {
+    Texture texture;
+    if (mood == "Mad") {
+        if (!texture.loadFromFile("sprites/catMad.png"))
+            MessageBox(NULL, "Mad Sprite Texture", "Load Error", MB_OK);
+        return texture;
+    } else {
+        if (!texture.loadFromFile("sprites/catNormal.png"))
+            MessageBox(NULL, "Base Sprite Texture", "Load Error", MB_OK);
+        return texture;
+    }
+
+} 
+
 int main() {
     //Takes in saved stats from txt file
     ifstream fin("stats.txt");
@@ -61,12 +96,37 @@ int main() {
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(255,0,255), 0, LWA_COLORKEY);
 
-    Texture texture;
-    if (!texture.loadFromFile("sprites/catNormal.png"))
-        MessageBox(NULL, "cat1.png", "Error", MB_OK);
+    Texture spriteTexture;
+    if (!spriteTexture.loadFromFile("sprites/catNormal.png"))
+        MessageBox(NULL, "Base Sprite Texture", "Load Error", MB_OK);
     RectangleShape spriteBase({200.f, 200.f});
-    spriteBase.setTexture(&texture);
-    
+    spriteBase.setTexture(&spriteTexture);
+    spriteBase.setOrigin({100.f,100.f});
+    spriteBase.setPosition({300.f,200.f});
+
+    Texture barTexture;
+    if (!barTexture.loadFromFile("sprites/happinessBar.png"))
+        MessageBox(NULL, "Happiness Bar Texture", "Load Error", MB_OK);
+    RectangleShape barBase({200.f, 200.f});
+    barBase.setOrigin({100.f, 100.f});
+    barBase.setPosition({400.f, 200.f});
+    barBase.setTexture(&barTexture);
+
+    vector<RectangleShape> barHelpers(4, RectangleShape({40.f, 32.f}));
+    for (int i = 0; i < 4; i++) {
+        barHelpers[i].setOrigin({20.f,16.f});
+        barHelpers[i].setPosition({400.f,247.f + (i * -32.f)});
+        barHelpers[i].setFillColor(Color(18,219,18));
+    }
+    RectangleShape bar0({40.f, 32.f});
+    bar0.setOrigin({20.f, 16.f});
+    bar0.setPosition({400.f, 247.f});
+    bar0.setFillColor(Color(5, 51, 6));
+
+    RectangleShape bar1({40.f, 32.f});
+    bar1.setOrigin({20.f, 16.f});
+    bar1.setPosition({400.f, 217.f});
+    bar1.setFillColor(Color(5, 51, 6));
 
     Font font("bin/RasterForgeRegular-JpBgm.ttf");
     Text hText(font);
@@ -80,16 +140,23 @@ int main() {
     dText.setFillColor(Color::Green);
     dText.setStyle(Text::Bold);
     dText.setPosition(Vector2f(0, 30));
-    
-
+    Angle rotation = degrees(1.f);
     while (window.isOpen()) {
         window.clear(Color(255,0,255));
         window.draw(spriteBase);
+        for (RectangleShape rect : barHelpers) {
+            window.draw(rect);
+        }
+        window.draw(barBase);
         window.draw(hText);
         window.draw(dText);
+
         hText.setString(to_string(stats.hunger));
         dText.setString(to_string(stats.money));
+
         window.display();
+
+        spriteBase.rotate(rotation);
 
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
@@ -110,9 +177,14 @@ int main() {
                 if (Keyboard::isKeyPressed(Keyboard::Key::A))
                     stats.hunger -= 5;
             }
+
+            
         }
-
-
+        barManagment(stats, barHelpers);
+        if (stats.hunger > 0) {
+            spriteBase.setTexture(&spriteTexture);
+            mood = "Normal";
+        }
         if (stats.hunger <= 0) {
             if (mood != "Mad") {
                 static Texture madCatTexture;
@@ -124,7 +196,6 @@ int main() {
                 }
             }
         }
-
     }
 }
 
