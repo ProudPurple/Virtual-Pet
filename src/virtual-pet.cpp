@@ -12,9 +12,14 @@ using namespace std;
 
 struct Stats {
     int hunger;
-    int mood;
     int money;
+    string mood;
 };
+
+const Font font("RasterForgeRegular-JpBgm.ttf");
+const Color defaultGreen = Color(34,177,76);
+const Color lightGreen = Color(18, 219, 18);
+const Color darkGreen = Color(5, 51, 6);
 
 void save(Stats stats) {
     ofstream fout("stats.txt");
@@ -31,11 +36,14 @@ void statDecay(Stats& stats) {
 
         if (frame % 10 == 0)
             stats.money += 5;
-        if (frame % 4 == 0)
-            stats.mood -= 5;
 
         this_thread::sleep_for(chrono::seconds(1));
     }
+}
+
+void textureDefine(Texture& texture, string filePath) {
+    if (!texture.loadFromFile(filePath))
+        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
 }
 
 void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
@@ -58,62 +66,67 @@ void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
         barHelpers[0].setFillColor(Color(18,219,18));
 }
 
+RectangleShape createRectangle(const Texture& texture, float height, float width, float x, float y) {
+    RectangleShape rect({height, width});
+    rect.setOrigin({height/2, width/2});
+    rect.setPosition({x, y});
+    rect.setTexture({&texture});
+    return rect;
+}
+
+Text createText(int charSize, float x, float y, Color color, String s) {
+    Text txt(font);
+    txt.setString(s);
+    txt.setCharacterSize(charSize);
+    txt.setPosition({x,y});
+    txt.setFillColor(color);
+    return txt;
+}
+
 Texture currentTexture(string mood) {
     Texture texture;
-    if (mood == "Mad") {
-        if (!texture.loadFromFile("sprites/catMad.png"))
-            MessageBox(NULL, "Mad Sprite Texture", "Load Error", MB_OK);
-        return texture;
-    } else {
-        if (!texture.loadFromFile("sprites/catNormal.png"))
-            MessageBox(NULL, "Base Sprite Texture", "Load Error", MB_OK);
-        return texture;
-    }
+    if (mood == "Mad")
+        textureDefine(texture, "sprites/catMad.png");
+    else
+        textureDefine(texture, "sprites/catNormal.png");
+    return texture;
 } 
 
-string enterName(RenderWindow& window, Font font) {
-    string name = "HELLO";
+string enterName(RenderWindow& window) {
     bool typing = true;
-    Text nameText(font);
-    nameText.setCharacterSize(20);
-    nameText.setPosition({200,200});
-    nameText.setFillColor(Color::Green);
-
-    Text q(font);
-    q.setCharacterSize(25);
-    q.setPosition({100,100});
-    q.setFillColor(Color::Green);
-    q.setString("What is Your Pets Name?");
+    Text nameText = createText(20, 200, 200, Color::Green, "");
+    Text namePrompt = createText(25, 100, 100, Color::Green, "What is Your Pets Name?");
     while (window.isOpen() && typing) {
         window.clear(Color(255,0,255));
         window.draw(nameText);
-        window.draw(q);
-        nameText.setString(name);
+        window.draw(namePrompt);
         window.display();
+
         while (const optional event = window.pollEvent()) {
             if (const auto* textEntered = event->getIf<Event::TextEntered>()) {
                 char text = textEntered->unicode;
-                if (text == 8 && name.size() > 0)
-                    name.pop_back();
-                else if (text == 13)
+                if (text == 8 && nameText.getString().getSize() > 0) {
+                    string temp = nameText.getString();
+                    temp.pop_back();
+                    nameText.setString(temp);
+                } else if (text == 13) {
                     typing = false;
-                else if (name.size() <= 10 && text != 8)
-                    name += text;
+                } else if (nameText.getString().getSize() <= 10 && text != 8) {
+                    nameText.setString(nameText.getString() + text);
+                }
             }
         }
-        //MessageBox(NULL, name.c_str(), "Debug", MB_OK);
     }
-    return name;
+    return nameText.getString();
 }
+
 
 int main() {
     //Takes in saved stats from txt file
     ifstream fin("stats.txt");
     Stats stats;
-    string mood = "Normal";
     fin >> stats.hunger >> stats.mood >> stats.money;
 
-    thread hungerDecay(statDecay, ref(stats));
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO".c_str(), "Debug", MB_OK);
 
@@ -129,45 +142,31 @@ int main() {
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(255,0,255), 0, LWA_COLORKEY);
 
-    Texture spriteTexture = currentTexture(mood);
-    RectangleShape spriteBase({200.f, 200.f});
-    spriteBase.setTexture(&spriteTexture);
-    spriteBase.setOrigin({100.f,100.f});
-    spriteBase.setPosition({75.f,275.f});
+    Texture spriteTexture = currentTexture(stats.mood);
+    RectangleShape spriteBase = createRectangle(spriteTexture, 250.f, 250.f, 180.f, 275.f);
 
-
+    Texture shopButtonTexture;
+    textureDefine(shopButtonTexture, "sprites/shopButton.png");
+    Texture tasksButtonTexture;
+    textureDefine(tasksButtonTexture, "sprites/tasksButton.png");
     Texture barTexture;
-    if (!barTexture.loadFromFile("sprites/happinessBar.png"))
-        MessageBox(NULL, "Happiness Bar Texture", "Load Error", MB_OK);
-    RectangleShape barBase({200.f, 200.f});
-    barBase.setOrigin({100.f, 100.f});
-    barBase.setPosition({400.f, 200.f});
-    barBase.setTexture(&barTexture);
-    vector<RectangleShape> barHelpers(4, RectangleShape({40.f, 32.f}));
+    textureDefine(barTexture, "sprites/happinessBar.png");
+    
+    RectangleShape shopButton = createRectangle(shopButtonTexture, 100, 100, 70, 230);
+    RectangleShape tasksButton = createRectangle(tasksButtonTexture, 100, 100, 70, 300);
+    RectangleShape barBase = createRectangle(barTexture, 150, 150, 295, 265);
+    vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 24.f}));
     for (int i = 0; i < 4; i++) {
-        barHelpers[i].setOrigin({20.f,16.f});
-        barHelpers[i].setPosition({400.f,247.f + (i * -32.f)});
-        barHelpers[i].setFillColor(Color(18,219,18));
+        barHelpers[i].setOrigin({15.f,12.f});
+        barHelpers[i].setPosition({295.f,300.f + (i * -24.f)});
+        barHelpers[i].setFillColor(stats.hunger > i * 25 ? Color(18,219,18) : Color(5, 51, 6));
     }
 
-    Font font("RasterForgeRegular-JpBgm.ttf");
-    Text hText(font);
+    Text hungerText = createText(20, 0, 0, lightGreen, to_string(stats.hunger));
+    Text moneyText = createText(20, 0, 30, lightGreen, to_string(stats.money));
+    Text nameText = createText(20, 0, 60, lightGreen, enterName(window));
 
-    hText.setString(to_string(stats.hunger));
-    hText.setCharacterSize(20);
-    hText.setFillColor(Color::Green);
-    Text dText(font);
-    dText.setString(to_string(stats.hunger));
-    dText.setCharacterSize(20);
-    dText.setFillColor(Color::Green);
-    dText.setPosition(Vector2f(0, 30));
-
-    string name = enterName(window, font);
-    Text nameText(font);
-    nameText.setString(name);
-    nameText.setCharacterSize(20);
-    nameText.setFillColor(Color::Green);
-    nameText.setPosition({0,60});
+    thread hungerDecay(statDecay, ref(stats));
 
     while (window.isOpen()) {
         window.clear(Color(255,0,255));
@@ -176,12 +175,14 @@ int main() {
             window.draw(rect);
         }
         window.draw(barBase);
+        window.draw(tasksButton);
         window.draw(nameText);
-        window.draw(hText);
-        window.draw(dText);
+        window.draw(shopButton);
+        window.draw(hungerText);
+        window.draw(moneyText);
 
-        hText.setString(to_string(stats.hunger));
-        dText.setString(to_string(stats.money));
+        hungerText.setString(to_string(stats.hunger));
+        moneyText.setString(to_string(stats.money));
 
         window.display();
 
@@ -208,13 +209,13 @@ int main() {
 
         barManagment(stats, barHelpers);
         
-        if (stats.hunger > 0 && mood != "Normal") {
-            mood = "Normal";
-            spriteTexture = currentTexture(mood);
+        if (stats.hunger > 0 && stats.mood != "Normal") {
+            stats.mood = "Normal";
+            spriteTexture = currentTexture(stats.mood);
             spriteBase.setTexture(&spriteTexture);
-        } else if (stats.hunger <= 0 && mood != "Mad") {
-            mood = "Mad";
-            spriteTexture = currentTexture(mood);
+        } else if (stats.hunger <= 0 && stats.mood != "Mad") {
+            stats.mood = "Mad";
+            spriteTexture = currentTexture(stats.mood);
             spriteBase.setTexture(&spriteTexture);
         }
     }
