@@ -42,7 +42,7 @@ void statDecay(Stats& stats) {
 }
 
 void textureDefine(Texture& texture, string filePath) {
-    if (!texture.loadFromFile(filePath))
+    if (!texture.loadFromFile("sprites/" + filePath))
         MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
 }
 
@@ -86,9 +86,9 @@ Text createText(int charSize, float x, float y, Color color, String s) {
 Texture currentTexture(string mood) {
     Texture texture;
     if (mood == "Mad")
-        textureDefine(texture, "sprites/catMad.png");
+        textureDefine(texture, "catMad.png");
     else
-        textureDefine(texture, "sprites/catNormal.png");
+        textureDefine(texture, "catNormal.png");
     return texture;
 } 
 
@@ -120,6 +120,10 @@ string enterName(RenderWindow& window) {
     return nameText.getString();
 }
 
+void shopMenu(Stats stats) {
+
+}
+
 
 int main() {
     //Takes in saved stats from txt file
@@ -131,10 +135,10 @@ int main() {
     //MessageBox(NULL, "hELLO".c_str(), "Debug", MB_OK);
 
     //Make window and set some basic stuff
-    RenderWindow window(VideoMode(Vector2u(600, 400)), "Virtual Pet", Style::None, State::Windowed);
+    RenderWindow window(VideoMode(Vector2u(300, 275)), "Virtual Pet", Style::None, State::Windowed);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
-    window.setPosition({0, (int)VideoMode::getDesktopMode().size.y - 400});
+    window.setPosition({0, (int)VideoMode::getDesktopMode().size.y - 275});
 
     //Make window background clear
     HWND hwnd = window.getNativeHandle();
@@ -143,22 +147,25 @@ int main() {
     SetLayeredWindowAttributes(hwnd, RGB(255,0,255), 0, LWA_COLORKEY);
 
     Texture spriteTexture = currentTexture(stats.mood);
-    RectangleShape spriteBase = createRectangle(spriteTexture, 250.f, 250.f, 180.f, 275.f);
+    RectangleShape spriteBase = createRectangle(spriteTexture, 250, 250, 150, 125);
 
     Texture shopButtonTexture;
-    textureDefine(shopButtonTexture, "sprites/shopButton.png");
+    textureDefine(shopButtonTexture, "shopButton.png");
     Texture tasksButtonTexture;
-    textureDefine(tasksButtonTexture, "sprites/tasksButton.png");
+    textureDefine(tasksButtonTexture, "tasksButton.png");
     Texture barTexture;
-    textureDefine(barTexture, "sprites/happinessBar.png");
-    
-    RectangleShape shopButton = createRectangle(shopButtonTexture, 100, 100, 70, 230);
-    RectangleShape tasksButton = createRectangle(tasksButtonTexture, 100, 100, 70, 300);
-    RectangleShape barBase = createRectangle(barTexture, 150, 150, 295, 265);
+    textureDefine(barTexture, "happinessBar.png");
+    Texture cornerMoveTexture;
+    textureDefine(cornerMoveTexture, "cornerMove.png");
+
+    RectangleShape cornerMove = createRectangle(cornerMoveTexture, 50, 50, 240, 40);
+    RectangleShape shopButton = createRectangle(shopButtonTexture, 100, 100, 45, 85);
+    RectangleShape tasksButton = createRectangle(tasksButtonTexture, 100, 100, 45, 155);
+    RectangleShape barBase = createRectangle(barTexture, 115, 115, 280, 165);
     vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 24.f}));
     for (int i = 0; i < 4; i++) {
         barHelpers[i].setOrigin({15.f,12.f});
-        barHelpers[i].setPosition({295.f,300.f + (i * -24.f)});
+        barHelpers[i].setPosition({295.f,200.f + (i * -24.f)});
         barHelpers[i].setFillColor(stats.hunger > i * 25 ? Color(18,219,18) : Color(5, 51, 6));
     }
 
@@ -197,6 +204,8 @@ int main() {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (spriteBase.getGlobalBounds().contains(mousePos)) {
                         stats.hunger++;
+                    } else if (shopButton.getGlobalBounds().contains(mousePos)) {
+                        thread shopWindow(shopMenu, ref(stats));
                     }
                 }
             }
