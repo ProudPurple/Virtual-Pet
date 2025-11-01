@@ -16,10 +16,15 @@ struct Stats {
     string mood;
 };
 
-const Font font("RasterForgeRegular-JpBgm.ttf");
-const Color defaultGreen = Color(34,177,76);
-const Color lightGreen = Color(18, 219, 18);
-const Color darkGreen = Color(5, 51, 6);
+struct RectangleImage {
+    RectangleShape rectangle;
+    shared_ptr<Texture> texture;
+};
+
+
+const Color DEFAULT_GREEN = Color(34,177,76);
+const Color LIGHT_GREEN = Color(18, 219, 18);
+const Color DARK_GREEN = Color(5, 51, 6);
 
 void save(Stats stats) {
     ofstream fout("stats.txt");
@@ -43,34 +48,43 @@ void statDecay(Stats& stats) {
 
 void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
     if (stats.hunger <= 0)
-        barHelpers[0].setFillColor(darkGreen);
+        barHelpers[0].setFillColor(DARK_GREEN);
     else if (stats.hunger <= 25)
-        barHelpers[1].setFillColor(darkGreen);
+        barHelpers[1].setFillColor(DARK_GREEN);
     else if (stats.hunger <= 50)
-        barHelpers[2].setFillColor(darkGreen);
+        barHelpers[2].setFillColor(DARK_GREEN);
     else if (stats.hunger <= 75)
-        barHelpers[3].setFillColor(darkGreen);
+        barHelpers[3].setFillColor(DARK_GREEN);
 
     if (stats.hunger > 75)
-        barHelpers[3].setFillColor(defaultGreen);
+        barHelpers[3].setFillColor(DEFAULT_GREEN);
     else if (stats.hunger > 50)
-        barHelpers[2].setFillColor(defaultGreen);
+        barHelpers[2].setFillColor(DEFAULT_GREEN);
     else if (stats.hunger > 25)
-        barHelpers[1].setFillColor(defaultGreen);
+        barHelpers[1].setFillColor(DEFAULT_GREEN);
     else if (stats.hunger > 0)
-        barHelpers[0].setFillColor(defaultGreen);
+        barHelpers[0].setFillColor(DEFAULT_GREEN);
 }
 
-RectangleShape createRectangle(const Texture& texture, float height, float width, float x, float y) {
+void textureDefine(std::shared_ptr<Texture>& texPtr, const string& filePath) {
+    texPtr = make_shared<Texture>();
+    string fullPath = "sprites/" + filePath + ".png";
+    if (!texPtr->loadFromFile(fullPath)) {
+        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
+        texPtr.reset();
+    }
+}
+
+RectangleShape createRectangle(float height, float width, float x, float y) {
     RectangleShape rect({height, width});
     rect.setOrigin({height/2, width/2});
     rect.setPosition({x, y});
-    rect.setTexture({&texture});
     return rect;
 }
 
 Text createText(int charSize, float x, float y, Color color, String s) {
-    Text txt(font);
+    static Font FONT("RasterForgeRegular-JpBgm.ttf");
+    Text txt(FONT);
     txt.setString(s);
     txt.setCharacterSize(charSize);
     txt.setPosition({x,y});
@@ -85,21 +99,13 @@ void textRecenter(Text& text, string command) {
         text.setOrigin(text.getPosition());
 }
 
-Texture textureDefine (string filePath) {
-    Texture texture;
-    if (!texture.loadFromFile("sprites/" + filePath))
-        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
-    return texture;
+RectangleImage defineRectangleImage(string filepath, Vector2f size, Vector2f pos) {
+    RectangleImage rect;
+    rect.rectangle = createRectangle(size.x, size.y, pos.x, pos.y);
+    textureDefine(rect.texture, filepath);
+    if (rect.texture) rect.rectangle.setTexture(rect.texture.get());
+    return move(rect);
 }
-
-Texture currentTexture(string mood) {
-    Texture texture;
-    if (mood == "Mad")
-        texture = textureDefine("catMad.png");
-    else
-        texture = textureDefine("catNormal.png");
-    return texture;
-} 
 
 string enterName(RenderWindow& window) {
     bool typing = true;
@@ -156,44 +162,36 @@ int main() {
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(0,1,0), 0, LWA_COLORKEY);
 
-    Texture spriteTexture = currentTexture(stats.mood);
-    RectangleShape spriteBase = createRectangle(spriteTexture, 250, 250, 150, 125);
-
-    Texture shopButtonTexture = textureDefine("shopButton.png");
-    Texture tasksButtonTexture = textureDefine("tasksButton.png");
-    Texture barTexture = textureDefine("happinessBar.png");
-    Texture cornerMoveTexture = textureDefine("cornerMove.png");
-
-    RectangleShape cornerMove = createRectangle(cornerMoveTexture, 50, 50, 240, 40);
-    RectangleShape shopButton = createRectangle(shopButtonTexture, 100, 100, 45, 85);
-    RectangleShape tasksButton = createRectangle(tasksButtonTexture, 100, 100, 45, 155);
-    RectangleShape barBase = createRectangle(barTexture, 115, 115, 250, 120);
+    RectangleImage spriteBase = defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
+    RectangleImage cornerMove = defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
+    RectangleImage shopButton = defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
+    RectangleImage tasksButton = defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
+    RectangleImage barBase = defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
+   
+    
     vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
     for (int i = 0; i < 4; i++) {
-        barHelpers[i].setOrigin({15.f,10.f});
-        barHelpers[i].setPosition({250.f,150.f + (i * -20.f)});
-        barHelpers[i].setFillColor(stats.hunger > i * 25 ? defaultGreen : darkGreen);
+        barHelpers[i] = createRectangle(30, 20, 250, 150 + (i * -20));
+        barHelpers[i].setFillColor(stats.hunger > i * 25 ? DEFAULT_GREEN : DARK_GREEN);
     }
 
-    Text hungerText = createText(20, 0, 0, lightGreen, to_string(stats.hunger));
-    Text moneyText = createText(20, 0, 30, lightGreen, to_string(stats.money));
-    Text nameText = createText(30, 150, 10, defaultGreen, enterName(window));
+    Text hungerText = createText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
+    Text moneyText = createText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
+    Text nameText = createText(30, 150, 10, DEFAULT_GREEN, enterName(window));
     textRecenter(nameText, "middle");
 
     thread hungerDecay(statDecay, ref(stats));
 
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
-        window.draw(spriteBase);
+        window.draw(spriteBase.rectangle);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
         }
-        window.draw(barBase);
-        window.draw(tasksButton);
+        window.draw(barBase.rectangle);
+        window.draw(tasksButton.rectangle);
+        window.draw(shopButton.rectangle);
         window.draw(nameText);
-        window.draw(shopButton);
-        window.draw(hungerText);
-        window.draw(moneyText);
 
         hungerText.setString(to_string(stats.hunger));
         moneyText.setString(to_string(stats.money));
@@ -209,9 +207,9 @@ int main() {
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    if (spriteBase.getGlobalBounds().contains(mousePos)) {
+                    if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.hunger++;
-                    } else if (shopButton.getGlobalBounds().contains(mousePos)) {
+                    } else if (shopButton.rectangle.getLocalBounds().contains(mousePos)) {
                         thread shopWindow(shopMenu, ref(stats));
                     }
                 }
@@ -224,17 +222,5 @@ int main() {
         }
 
         barManagment(stats, barHelpers);
-        
-        if (stats.hunger > 0 && stats.mood != "Normal") {
-            stats.mood = "Normal";
-            spriteTexture = currentTexture(stats.mood);
-            spriteBase.setTexture(&spriteTexture);
-        } else if (stats.hunger <= 0 && stats.mood != "Mad") {
-            stats.mood = "Mad";
-            spriteTexture = currentTexture(stats.mood);
-            spriteBase.setTexture(&spriteTexture);
-        }
     }
 }
-
-

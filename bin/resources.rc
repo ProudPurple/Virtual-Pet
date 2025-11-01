@@ -1,0 +1,2 @@
+#include "resources.h"
+IDI_APP_ICON ICON "catRich.ico"
