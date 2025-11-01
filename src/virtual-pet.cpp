@@ -41,29 +41,24 @@ void statDecay(Stats& stats) {
     }
 }
 
-void textureDefine(Texture& texture, string filePath) {
-    if (!texture.loadFromFile("sprites/" + filePath))
-        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
-}
-
 void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
     if (stats.hunger <= 0)
-        barHelpers[0].setFillColor(Color(5,51,6));
+        barHelpers[0].setFillColor(darkGreen);
     else if (stats.hunger <= 25)
-        barHelpers[1].setFillColor(Color(5,51,6));
+        barHelpers[1].setFillColor(darkGreen);
     else if (stats.hunger <= 50)
-        barHelpers[2].setFillColor(Color(5,51,6));
+        barHelpers[2].setFillColor(darkGreen);
     else if (stats.hunger <= 75)
-        barHelpers[3].setFillColor(Color(5,51,6));
+        barHelpers[3].setFillColor(darkGreen);
 
     if (stats.hunger > 75)
-        barHelpers[3].setFillColor(Color(18,219,18));
+        barHelpers[3].setFillColor(defaultGreen);
     else if (stats.hunger > 50)
-        barHelpers[2].setFillColor(Color(18,219,18));
+        barHelpers[2].setFillColor(defaultGreen);
     else if (stats.hunger > 25)
-        barHelpers[1].setFillColor(Color(18,219,18));
+        barHelpers[1].setFillColor(defaultGreen);
     else if (stats.hunger > 0)
-        barHelpers[0].setFillColor(Color(18,219,18));
+        barHelpers[0].setFillColor(defaultGreen);
 }
 
 RectangleShape createRectangle(const Texture& texture, float height, float width, float x, float y) {
@@ -83,21 +78,35 @@ Text createText(int charSize, float x, float y, Color color, String s) {
     return txt;
 }
 
+void textRecenter(Text& text, string command) {
+    if (command == "middle")
+        text.setOrigin(Vector2f(text.getLocalBounds().position.x + text.getLocalBounds().size.x / 2.f, text.getLocalBounds().position.y + text.getLocalBounds().size.y / 2.f));
+    else if (command == "left")
+        text.setOrigin(text.getPosition());
+}
+
+Texture textureDefine (string filePath) {
+    Texture texture;
+    if (!texture.loadFromFile("sprites/" + filePath))
+        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
+    return texture;
+}
+
 Texture currentTexture(string mood) {
     Texture texture;
     if (mood == "Mad")
-        textureDefine(texture, "catMad.png");
+        texture = textureDefine("catMad.png");
     else
-        textureDefine(texture, "catNormal.png");
+        texture = textureDefine("catNormal.png");
     return texture;
 } 
 
 string enterName(RenderWindow& window) {
     bool typing = true;
-    Text nameText = createText(20, 200, 200, Color::Green, "");
-    Text namePrompt = createText(25, 100, 100, Color::Green, "What is Your Pets Name?");
+    Text nameText = createText(15, 150, 150, Color::Green, "");
+    Text namePrompt = createText(25, 50, 50, Color::Green, "What is Your\n Pets Name?");
     while (window.isOpen() && typing) {
-        window.clear(Color(255,0,255));
+        window.clear(Color(0,1,0));
         window.draw(nameText);
         window.draw(namePrompt);
         window.display();
@@ -114,6 +123,7 @@ string enterName(RenderWindow& window) {
                 } else if (nameText.getString().getSize() <= 10 && text != 8) {
                     nameText.setString(nameText.getString() + text);
                 }
+                textRecenter(nameText, "middle");
             }
         }
     }
@@ -144,39 +154,36 @@ int main() {
     HWND hwnd = window.getNativeHandle();
     LONG style = GetWindowLong(hwnd, GWL_EXSTYLE);
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(hwnd, RGB(255,0,255), 0, LWA_COLORKEY);
+    SetLayeredWindowAttributes(hwnd, RGB(0,1,0), 0, LWA_COLORKEY);
 
     Texture spriteTexture = currentTexture(stats.mood);
     RectangleShape spriteBase = createRectangle(spriteTexture, 250, 250, 150, 125);
 
-    Texture shopButtonTexture;
-    textureDefine(shopButtonTexture, "shopButton.png");
-    Texture tasksButtonTexture;
-    textureDefine(tasksButtonTexture, "tasksButton.png");
-    Texture barTexture;
-    textureDefine(barTexture, "happinessBar.png");
-    Texture cornerMoveTexture;
-    textureDefine(cornerMoveTexture, "cornerMove.png");
+    Texture shopButtonTexture = textureDefine("shopButton.png");
+    Texture tasksButtonTexture = textureDefine("tasksButton.png");
+    Texture barTexture = textureDefine("happinessBar.png");
+    Texture cornerMoveTexture = textureDefine("cornerMove.png");
 
     RectangleShape cornerMove = createRectangle(cornerMoveTexture, 50, 50, 240, 40);
     RectangleShape shopButton = createRectangle(shopButtonTexture, 100, 100, 45, 85);
     RectangleShape tasksButton = createRectangle(tasksButtonTexture, 100, 100, 45, 155);
-    RectangleShape barBase = createRectangle(barTexture, 115, 115, 280, 165);
-    vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 24.f}));
+    RectangleShape barBase = createRectangle(barTexture, 115, 115, 250, 120);
+    vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
     for (int i = 0; i < 4; i++) {
-        barHelpers[i].setOrigin({15.f,12.f});
-        barHelpers[i].setPosition({295.f,200.f + (i * -24.f)});
-        barHelpers[i].setFillColor(stats.hunger > i * 25 ? Color(18,219,18) : Color(5, 51, 6));
+        barHelpers[i].setOrigin({15.f,10.f});
+        barHelpers[i].setPosition({250.f,150.f + (i * -20.f)});
+        barHelpers[i].setFillColor(stats.hunger > i * 25 ? defaultGreen : darkGreen);
     }
 
     Text hungerText = createText(20, 0, 0, lightGreen, to_string(stats.hunger));
     Text moneyText = createText(20, 0, 30, lightGreen, to_string(stats.money));
-    Text nameText = createText(20, 0, 60, lightGreen, enterName(window));
+    Text nameText = createText(30, 150, 10, defaultGreen, enterName(window));
+    textRecenter(nameText, "middle");
 
     thread hungerDecay(statDecay, ref(stats));
 
     while (window.isOpen()) {
-        window.clear(Color(255,0,255));
+        window.clear(Color(0,1,0));
         window.draw(spriteBase);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
