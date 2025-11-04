@@ -10,6 +10,11 @@
 using namespace sf;
 using namespace std;
 
+const Font FONT("RasterForgeRegular-JpBgm.ttf");
+const Color DEFAULT_GREEN = Color(34,177,76);
+const Color LIGHT_GREEN = Color(18, 219, 18);
+const Color DARK_GREEN = Color(5, 51, 6);
+
 struct Stats {
     int hunger;
     int money;
@@ -21,10 +26,20 @@ struct RectangleImage {
     shared_ptr<Texture> texture;
 };
 
+struct listItem {
+    RectangleImage image;
+    Text title;
+    Text description;
+    int cost;
+    int id;
 
-const Color DEFAULT_GREEN = Color(34,177,76);
-const Color LIGHT_GREEN = Color(18, 219, 18);
-const Color DARK_GREEN = Color(5, 51, 6);
+    listItem() 
+        : title(FONT, "N/A", 10),
+        description(FONT, "N/A", 10)
+    {}
+};
+
+
 
 void save(Stats stats) {
     ofstream fout("stats.txt");
@@ -92,6 +107,7 @@ Text createText(int charSize, float x, float y, Color color, String s) {
     return txt;
 }
 
+
 void textRecenter(Text& text, string command) {
     if (command == "middle")
         text.setOrigin(Vector2f(text.getLocalBounds().position.x + text.getLocalBounds().size.x / 2.f, text.getLocalBounds().position.y + text.getLocalBounds().size.y / 2.f));
@@ -136,8 +152,34 @@ string enterName(RenderWindow& window) {
     return nameText.getString();
 }
 
-void shopMenu(Stats stats) {
+auto defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
+    listItem item;
+    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(50, 50 + 60 * id));
+    item.title = createText(15, 160, 20 + 60 * (id), DEFAULT_GREEN, title);
+    textRecenter(item.title, "middle");
+    item.description = createText(10, 160, 50 + 60 * (id), DEFAULT_GREEN, description);
+    textRecenter(item.description, "middle");
+    item.cost = cost;
+    item.id = id;
+    return item;
+}
 
+void shopMenu(Stats stats, RenderWindow& window) {
+    RectangleImage background = defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
+    vector<listItem> shopItems;
+    shopItems.push_back(defineListItem());
+    shopItems.push_back(defineListItem("catRich", "BIG MONEY CAT", "SOOOOOO MUCH MONEY", 1000000, 1));
+    while (window.isOpen()) {
+        window.clear(Color(0,1,0));
+        window.draw(background.rectangle);
+        for (auto& item : shopItems) {
+            window.draw(item.image.rectangle);
+            window.draw(item.title);
+            window.draw(item.description);
+        }
+        window.display();
+
+    }
 }
 
 
@@ -167,7 +209,7 @@ int main() {
     RectangleImage shopButton = defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
     RectangleImage tasksButton = defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
     RectangleImage barBase = defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
-   
+
     
     vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
     for (int i = 0; i < 4; i++) {
@@ -193,6 +235,7 @@ int main() {
         window.draw(shopButton.rectangle);
         window.draw(nameText);
 
+
         hungerText.setString(to_string(stats.hunger));
         moneyText.setString(to_string(stats.money));
 
@@ -207,10 +250,10 @@ int main() {
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
+                    if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
+                        shopMenu(stats, window);
+                    } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.hunger++;
-                    } else if (shopButton.rectangle.getLocalBounds().contains(mousePos)) {
-                        thread shopWindow(shopMenu, ref(stats));
                     }
                 }
             }
