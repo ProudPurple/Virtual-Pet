@@ -18,7 +18,9 @@ const Color DARK_GREEN = Color(5, 51, 6);
 struct Stats {
     int hunger;
     int money;
+    int hash;
     string mood;
+    string record;
 };
 
 struct RectangleImage {
@@ -28,24 +30,38 @@ struct RectangleImage {
 
 struct listItem {
     RectangleImage image;
+    RectangleImage buy;
+    RectangleShape bar;
     Text title;
     Text description;
-    int cost;
+    Text cost;
     int id;
 
     listItem() 
         : title(FONT, "N/A", 10),
-        description(FONT, "N/A", 10)
+        description(FONT, "N/A", 10),
+        cost(FONT, "0", 10)
     {}
 };
 
 
+int hasher(string record) {
+    int i = 0;
+    for (char c : record) {
+        i += c - '0' + 3;
+        i *= 3;
+        i -= 7;
+    }
+    return i;
+}
 
 void save(Stats stats) {
     ofstream fout("stats.txt");
-    fout << stats.hunger << endl
-    << stats.mood << endl
-    << stats.money << endl;
+    fout << stats.hunger << ' '
+    << stats.money << ' '
+    << stats.mood << ' '
+    << stats.record << ' '
+    << stats.hash << endl;
 }
 
 void statDecay(Stats& stats) {
@@ -54,7 +70,7 @@ void statDecay(Stats& stats) {
         frame++;
         stats.hunger--;
 
-        if (frame % 10 == 0)
+        if (frame % 5 == 0)
             stats.money += 5;
 
         this_thread::sleep_for(chrono::seconds(1));
@@ -152,33 +168,71 @@ string enterName(RenderWindow& window) {
     return nameText.getString();
 }
 
-auto defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
+listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
     listItem item;
-    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(50, 50 + 60 * id));
-    item.title = createText(15, 160, 20 + 60 * (id), DEFAULT_GREEN, title);
+    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(50, 40 + 60 * (id % 3)));
+    item.title = createText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
     textRecenter(item.title, "middle");
-    item.description = createText(10, 160, 50 + 60 * (id), DEFAULT_GREEN, description);
+    item.description = createText(10, 160, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
     textRecenter(item.description, "middle");
-    item.cost = cost;
+    item.cost = createText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
+    textRecenter(item.cost, "middle");
+    item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
     item.id = id;
     return item;
 }
 
-void shopMenu(Stats stats, RenderWindow& window) {
+void shopMenu(Stats* stats, RenderWindow& window) {
     RectangleImage background = defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
+    RectangleImage close = defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
+    Text money = createText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats->money));
     vector<listItem> shopItems;
     shopItems.push_back(defineListItem());
-    shopItems.push_back(defineListItem("catRich", "BIG MONEY CAT", "SOOOOOO MUCH MONEY", 1000000, 1));
+    shopItems.push_back(defineListItem("catSick", "SOOO SICK", "CAT IS SICK :<", 1000, 1));
+    shopItems.push_back(defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
+    shopItems.push_back(defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
+    shopItems.push_back(defineListItem("close", "what is this", "kys", 20, 4));
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
+        money.setString('$' + to_string(stats->money));
         window.draw(background.rectangle);
-        for (auto& item : shopItems) {
-            window.draw(item.image.rectangle);
-            window.draw(item.title);
-            window.draw(item.description);
+        window.draw(money);
+        window.draw(close.rectangle);
+        for (int cur = 0; cur <= 2; cur++) {
+            for (int i = cur; i < shopItems.size(); i += 3) {
+                if (stats->record[shopItems[i].id] == '0') {
+                    window.draw(shopItems[i].image.rectangle);
+                    window.draw(shopItems[i].buy.rectangle);
+                    window.draw(shopItems[i].cost);
+                    window.draw(shopItems[i].description);
+                    window.draw(shopItems[i].title);
+                    i = shopItems.size();
+                }
+            }
         }
         window.display();
 
+        while (const optional event = window.pollEvent()) {
+             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                    for (int cur = 0; cur <= 2; cur++) {
+                        for (int i = cur; i < shopItems.size(); i += 3) {
+                            if (stats->record[shopItems[i].id] == '0') {
+                                if (shopItems[i].buy.rectangle.getGlobalBounds().contains(mousePos) && stats->money >= stoi((string)shopItems[i].cost.getString())) {
+                                    stats->record[i] = '1';
+                                    stats->money -= stoi((string)shopItems[i].cost.getString());
+                                }
+                                i = shopItems.size();
+                            }
+                        }
+                    }
+                    if (close.rectangle.getGlobalBounds().contains(mousePos))
+                        return;
+                }
+
+            }
+        }
     }
 }
 
@@ -187,10 +241,12 @@ int main() {
     //Takes in saved stats from txt file
     ifstream fin("stats.txt");
     Stats stats;
-    fin >> stats.hunger >> stats.mood >> stats.money;
+    fin >> stats.hunger >> stats.mood >> stats.money >> stats.record >> stats.hash;
+    if (stats.hash != hasher(stats.record))
+        return 0;
 
     //Can copy paste line for in context erroring
-    //MessageBox(NULL, "hELLO".c_str(), "Debug", MB_OK);
+    //MessageBox(NULL, "hELLO", "Debug", MB_OK);
 
     //Make window and set some basic stuff
     RenderWindow window(VideoMode(Vector2u(300, 275)), "Virtual Pet", Style::None, State::Windowed);
@@ -251,7 +307,7 @@ int main() {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        shopMenu(stats, window);
+                        shopMenu(&stats, window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.hunger++;
                     }
