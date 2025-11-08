@@ -36,6 +36,7 @@ struct listItem {
     Text description;
     Text cost;
     int id;
+    int pos;
 
     listItem() 
         : title(FONT, "N/A", 10),
@@ -168,66 +169,116 @@ string enterName(RenderWindow& window) {
     return nameText.getString();
 }
 
+void rollback(vector<listItem>& base, int start) {
+    for (auto& item : base) {
+        string test = item.title.getString();
+        if (item.pos > start) {
+            if (item.pos % 3 == 0) {
+                item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
+                item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
+                item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
+                item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
+                item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
+            } else {
+                item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
+                item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
+                item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
+                item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
+                item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
+            }
+            item.pos--;
+        } else if (item.pos == start) {
+            item.pos = -1;
+        }
+    }
+}
+
 listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
     listItem item;
-    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(50, 40 + 60 * (id % 3)));
+    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(60, 40 + 60 * (id % 3)));
     item.title = createText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
     textRecenter(item.title, "middle");
-    item.description = createText(10, 160, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
+    item.description = createText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
     textRecenter(item.description, "middle");
     item.cost = createText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
     textRecenter(item.cost, "middle");
     item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
     item.id = id;
+    item.pos = id;
     return item;
 }
 
 void shopMenu(Stats* stats, RenderWindow& window) {
+    int pageNum = 0;
     RectangleImage background = defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
+    RectangleImage arrowForward = defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
+    RectangleImage arrowBackward = defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
+    Angle flip = degrees(180);
+    arrowBackward.rectangle.rotate(flip);
     Text money = createText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats->money));
     vector<listItem> shopItems;
+    vector<int> itemOrder;
     shopItems.push_back(defineListItem());
     shopItems.push_back(defineListItem("catSick", "SOOO SICK", "CAT IS SICK :<", 1000, 1));
     shopItems.push_back(defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
     shopItems.push_back(defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
     shopItems.push_back(defineListItem("close", "what is this", "kys", 20, 4));
+    shopItems.push_back(defineListItem("buyButton", "NO", "this is for buying what", 2, 5));
+    for (auto& item : shopItems) {
+        if (stats->record[item.id] == '0') {
+            itemOrder.push_back(item.id);
+        } else {
+            rollback(shopItems, item.pos);
+        }
+    }
+
+
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
         money.setString('$' + to_string(stats->money));
         window.draw(background.rectangle);
         window.draw(money);
         window.draw(close.rectangle);
-        for (int cur = 0; cur <= 2; cur++) {
-            for (int i = cur; i < shopItems.size(); i += 3) {
-                if (stats->record[shopItems[i].id] == '0') {
-                    window.draw(shopItems[i].image.rectangle);
-                    window.draw(shopItems[i].buy.rectangle);
-                    window.draw(shopItems[i].cost);
-                    window.draw(shopItems[i].description);
-                    window.draw(shopItems[i].title);
-                    i = shopItems.size();
-                }
-            }
+        for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
+            int ind = itemOrder[i];
+            //MessageBox(NULL, to_string(ind).c_str(), "Debug", MB_OK);
+            window.draw(shopItems[ind].image.rectangle);
+            window.draw(shopItems[ind].buy.rectangle);
+            window.draw(shopItems[ind].cost);
+            window.draw(shopItems[ind].description);
+            window.draw(shopItems[ind].title);
         }
+        //USE SECONDARY ARRAY OF ORDER TO REFERENCE WITH EACH THING BEING AN ID ALLOWING FOR BETTER ARRANGEMENT
+        if ((int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+            window.draw(arrowForward.rectangle);
+        if ((int)pageNum > 0)
+            window.draw(arrowBackward.rectangle);
+
         window.display();
 
         while (const optional event = window.pollEvent()) {
              if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Right)
+                    MessageBox(NULL, to_string(pageNum).c_str(), "Debug", MB_OK);
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    for (int cur = 0; cur <= 2; cur++) {
-                        for (int i = cur; i < shopItems.size(); i += 3) {
-                            if (stats->record[shopItems[i].id] == '0') {
-                                if (shopItems[i].buy.rectangle.getGlobalBounds().contains(mousePos) && stats->money >= stoi((string)shopItems[i].cost.getString())) {
-                                    stats->record[i] = '1';
-                                    stats->money -= stoi((string)shopItems[i].cost.getString());
-                                }
-                                i = shopItems.size();
+                    for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
+                        int ind = itemOrder[i];
+                        if (shopItems[ind].buy.rectangle.getGlobalBounds().contains(mousePos)) {
+                            if (stats->money >= stoi((string)shopItems[ind].cost.getString())) {
+                                stats->record[ind] = '1';
+                                stats->money -= stoi((string)shopItems[ind].cost.getString());
+                                itemOrder.erase(itemOrder.begin() + i);
+                                rollback(shopItems, shopItems[ind].pos);
                             }
                         }
                     }
-                    if (close.rectangle.getGlobalBounds().contains(mousePos))
+                    if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
+                        pageNum--;
+                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+                        pageNum++;
+                    else if (close.rectangle.getGlobalBounds().contains(mousePos))
                         return;
                 }
 
