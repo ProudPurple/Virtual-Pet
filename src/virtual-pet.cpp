@@ -15,10 +15,14 @@ const Color DEFAULT_GREEN = Color(34,177,76);
 const Color LIGHT_GREEN = Color(18, 219, 18);
 const Color DARK_GREEN = Color(5, 51, 6);
 
+thread statDecayThread;
+atomic<bool> running = true;
+
 struct Stats {
     int hunger;
     int money;
     int hash;
+    string name;
     string mood;
     string record;
 };
@@ -45,247 +49,267 @@ struct listItem {
     {}
 };
 
-
-int hasher(string record) {
-    int i = 0;
-    for (char c : record) {
-        i += c - '0' + 3;
-        i *= 3;
-        i -= 7;
+class utilitiesManager {
+public:
+    static int hasher(string record) {
+        int i = 0;
+        for (char c : record) {
+            i += c - '0' + 3;
+            i *= 2;
+            i -= 7;
+        }
+        return i;
     }
-    return i;
-}
 
-void save(Stats stats) {
-    ofstream fout("stats.txt");
-    fout << stats.hunger << ' '
-    << stats.money << ' '
-    << stats.mood << ' '
-    << stats.record << ' '
-    << stats.hash << endl;
-}
-
-void statDecay(Stats& stats) {
-    int frame = 0;
-    while (true) {
-        frame++;
-        stats.hunger--;
-
-        if (frame % 5 == 0)
-            stats.money += 5;
-
-        this_thread::sleep_for(chrono::seconds(1));
+    static void save(Stats stats) {
+        ofstream fout("stats.txt");
+        fout << stats.hunger << ' '
+        << stats.money << ' '
+        << stats.mood << ' '
+        << stats.record << ' '
+        << utilitiesManager::hasher(stats.record) << ' '
+        << stats.name << endl;
     }
-}
 
-void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
-    if (stats.hunger <= 0)
-        barHelpers[0].setFillColor(DARK_GREEN);
-    else if (stats.hunger <= 25)
-        barHelpers[1].setFillColor(DARK_GREEN);
-    else if (stats.hunger <= 50)
-        barHelpers[2].setFillColor(DARK_GREEN);
-    else if (stats.hunger <= 75)
-        barHelpers[3].setFillColor(DARK_GREEN);
-
-    if (stats.hunger > 75)
-        barHelpers[3].setFillColor(DEFAULT_GREEN);
-    else if (stats.hunger > 50)
-        barHelpers[2].setFillColor(DEFAULT_GREEN);
-    else if (stats.hunger > 25)
-        barHelpers[1].setFillColor(DEFAULT_GREEN);
-    else if (stats.hunger > 0)
-        barHelpers[0].setFillColor(DEFAULT_GREEN);
-}
-
-void textureDefine(std::shared_ptr<Texture>& texPtr, const string& filePath) {
-    texPtr = make_shared<Texture>();
-    string fullPath = "sprites/" + filePath + ".png";
-    if (!texPtr->loadFromFile(fullPath)) {
-        MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
-        texPtr.reset();
+    static void close(RenderWindow& window, Stats stats) {
+        window.close();
+        running = false;
+        statDecayThread.join();
+        save(stats);
     }
-}
 
-RectangleShape createRectangle(float height, float width, float x, float y) {
-    RectangleShape rect({height, width});
-    rect.setOrigin({height/2, width/2});
-    rect.setPosition({x, y});
-    return rect;
-}
+    static void statDecay(Stats& stats) {
+        int frame = 0;
+        while (true && running) {
+            frame++;
+            stats.hunger--;
 
-Text createText(int charSize, float x, float y, Color color, String s) {
-    static Font FONT("RasterForgeRegular-JpBgm.ttf");
-    Text txt(FONT);
-    txt.setString(s);
-    txt.setCharacterSize(charSize);
-    txt.setPosition({x,y});
-    txt.setFillColor(color);
-    return txt;
-}
+            if (frame % 5 == 0)
+                stats.money += 5;
+            this_thread::sleep_for(chrono::seconds(1));
+        }
+    }
 
+    static void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
+        if (stats.hunger <= 0)
+            barHelpers[0].setFillColor(DARK_GREEN);
+        else if (stats.hunger <= 25)
+            barHelpers[1].setFillColor(DARK_GREEN);
+        else if (stats.hunger <= 50)
+            barHelpers[2].setFillColor(DARK_GREEN);
+        else if (stats.hunger <= 75)
+            barHelpers[3].setFillColor(DARK_GREEN);
 
-void textRecenter(Text& text, string command) {
-    if (command == "middle")
-        text.setOrigin(Vector2f(text.getLocalBounds().position.x + text.getLocalBounds().size.x / 2.f, text.getLocalBounds().position.y + text.getLocalBounds().size.y / 2.f));
-    else if (command == "left")
-        text.setOrigin(text.getPosition());
-}
+        if (stats.hunger > 75)
+            barHelpers[3].setFillColor(DEFAULT_GREEN);
+        else if (stats.hunger > 50)
+            barHelpers[2].setFillColor(DEFAULT_GREEN);
+        else if (stats.hunger > 25)
+            barHelpers[1].setFillColor(DEFAULT_GREEN);
+        else if (stats.hunger > 0)
+            barHelpers[0].setFillColor(DEFAULT_GREEN);
+    }
 
-RectangleImage defineRectangleImage(string filepath, Vector2f size, Vector2f pos) {
-    RectangleImage rect;
-    rect.rectangle = createRectangle(size.x, size.y, pos.x, pos.y);
-    textureDefine(rect.texture, filepath);
-    if (rect.texture) rect.rectangle.setTexture(rect.texture.get());
-    return move(rect);
-}
-
-string enterName(RenderWindow& window) {
-    bool typing = true;
-    Text nameText = createText(15, 150, 150, Color::Green, "");
-    Text namePrompt = createText(25, 50, 50, Color::Green, "What is Your\n Pets Name?");
-    while (window.isOpen() && typing) {
-        window.clear(Color(0,1,0));
-        window.draw(nameText);
-        window.draw(namePrompt);
-        window.display();
-
-        while (const optional event = window.pollEvent()) {
-            if (const auto* textEntered = event->getIf<Event::TextEntered>()) {
-                char text = textEntered->unicode;
-                if (text == 8 && nameText.getString().getSize() > 0) {
-                    string temp = nameText.getString();
-                    temp.pop_back();
-                    nameText.setString(temp);
-                } else if (text == 13) {
-                    typing = false;
-                } else if (nameText.getString().getSize() <= 10 && text != 8) {
-                    nameText.setString(nameText.getString() + text);
+    static void rollback(vector<listItem>& base, int start) {
+        for (auto& item : base) {
+            string test = item.title.getString();
+            if (item.pos > start) {
+                if (item.pos % 3 == 0) {
+                    item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
+                    item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
+                    item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
+                    item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
+                    item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
+                } else {
+                    item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
+                    item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
+                    item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
+                    item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
+                    item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
                 }
-                textRecenter(nameText, "middle");
+                item.pos--;
+            } else if (item.pos == start) {
+                item.pos = -1;
             }
         }
     }
-    return nameText.getString();
-}
+    
+    static void textRecenter(Text& text, string command) {
+        if (command == "middle")
+            text.setOrigin(Vector2f(text.getLocalBounds().position.x + text.getLocalBounds().size.x / 2.f, text.getLocalBounds().position.y + text.getLocalBounds().size.y / 2.f));
+        else if (command == "left")
+            text.setOrigin(text.getPosition());
+    }
+};
 
-void rollback(vector<listItem>& base, int start) {
-    for (auto& item : base) {
-        string test = item.title.getString();
-        if (item.pos > start) {
-            if (item.pos % 3 == 0) {
-                item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
-                item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
-                item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
-                item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
-                item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
+class creationManager {
+public:
+    static void textureDefine(std::shared_ptr<Texture>& texPtr, const string& filePath) {
+        texPtr = make_shared<Texture>();
+        string fullPath = "sprites/" + filePath + ".png";
+        if (!texPtr->loadFromFile(fullPath)) {
+            MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
+            texPtr.reset();
+        }
+    }
+
+    static RectangleShape defineRectangle(float height, float width, float x, float y) {
+        RectangleShape rect({height, width});
+        rect.setOrigin({height/2, width/2});
+        rect.setPosition({x, y});
+        return rect;
+    }
+
+    
+    static listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
+        listItem item;
+        item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(60, 40 + 60 * (id % 3)));
+        item.title = creationManager::defineText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
+        utilitiesManager::textRecenter(item.title, "middle");
+        item.description = creationManager::defineText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
+        utilitiesManager::textRecenter(item.description, "middle");
+        item.cost = creationManager::defineText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
+        utilitiesManager::textRecenter(item.cost, "middle");
+        item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
+        item.id = id;
+        item.pos = id;
+        return item;
+    }
+
+    static Text defineText(int charSize, float x, float y, Color color, String s) {
+        static Font FONT("RasterForgeRegular-JpBgm.ttf");
+        Text txt(FONT);
+        txt.setString(s);
+        txt.setCharacterSize(charSize);
+        txt.setPosition({x,y});
+        txt.setFillColor(color);
+        return txt;
+    }
+
+    static RectangleImage defineRectangleImage(string filepath, Vector2f size, Vector2f pos) {
+        RectangleImage rect;
+        rect.rectangle = creationManager::defineRectangle(size.x, size.y, pos.x, pos.y);
+        textureDefine(rect.texture, filepath);
+        if (rect.texture) rect.rectangle.setTexture(rect.texture.get());
+        return move(rect);
+    }
+};
+
+class windowManager {
+public:
+    static string enterName(RenderWindow& window, Stats stats) {
+        bool typing = true;
+        Text nameText = creationManager::defineText(15, 150, 150, Color::Green, "");
+        Text namePrompt = creationManager::defineText(25, 50, 50, Color::Green, "What is Your\n Pets Name?");
+        while (window.isOpen() && typing) {
+            window.clear(Color(0,1,0));
+            window.draw(nameText);
+            window.draw(namePrompt);
+            window.display();
+
+            while (const optional event = window.pollEvent()) {
+                if (event->is<Event::Closed>())
+                    return "CLOSE PLEASE";
+                if (const auto* textEntered = event->getIf<Event::TextEntered>()) {
+                    char text = textEntered->unicode;
+                    if (text == 8 && nameText.getString().getSize() > 0) {
+                        string temp = nameText.getString();
+                        temp.pop_back();
+                        nameText.setString(temp);
+                    } else if (text == 13) {
+                        typing = false;
+                    } else if (nameText.getString().getSize() <= 10 && text != 8) {
+                        nameText.setString(nameText.getString() + text);
+                    }
+                    utilitiesManager::textRecenter(nameText, "middle");
+                }
+            }
+        }
+        return nameText.getString();
+    }
+
+
+    static void shopMenu(Stats* stats, RenderWindow& window) {
+        int pageNum = 0;
+        RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
+        RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
+        RectangleImage arrowForward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
+        RectangleImage arrowBackward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
+        Angle flip = degrees(180);
+        arrowBackward.rectangle.rotate(flip);
+        Text money = creationManager::defineText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats->money));
+        vector<listItem> shopItems;
+        vector<int> itemOrder;
+        shopItems.push_back(creationManager::defineListItem());
+        shopItems.push_back(creationManager::defineListItem("catSick", "SOOO SICK", "CAT IS SICK :<", 1000, 1));
+        shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
+        shopItems.push_back(creationManager::defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
+        shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 20, 4));
+        shopItems.push_back(creationManager::defineListItem("buyButton", "NO", "this is for buying what", 2, 5));
+        for (auto& item : shopItems) {
+            if (stats->record[item.id] == '0') {
+                itemOrder.push_back(item.id);
             } else {
-                item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
-                item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
-                item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
-                item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
-                item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
+                utilitiesManager::rollback(shopItems, item.pos);
             }
-            item.pos--;
-        } else if (item.pos == start) {
-            item.pos = -1;
         }
-    }
-}
-
-listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
-    listItem item;
-    item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(60, 40 + 60 * (id % 3)));
-    item.title = createText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
-    textRecenter(item.title, "middle");
-    item.description = createText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
-    textRecenter(item.description, "middle");
-    item.cost = createText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
-    textRecenter(item.cost, "middle");
-    item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
-    item.id = id;
-    item.pos = id;
-    return item;
-}
-
-void shopMenu(Stats* stats, RenderWindow& window) {
-    int pageNum = 0;
-    RectangleImage background = defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
-    RectangleImage close = defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
-    RectangleImage arrowForward = defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
-    RectangleImage arrowBackward = defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
-    Angle flip = degrees(180);
-    arrowBackward.rectangle.rotate(flip);
-    Text money = createText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats->money));
-    vector<listItem> shopItems;
-    vector<int> itemOrder;
-    shopItems.push_back(defineListItem());
-    shopItems.push_back(defineListItem("catSick", "SOOO SICK", "CAT IS SICK :<", 1000, 1));
-    shopItems.push_back(defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
-    shopItems.push_back(defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
-    shopItems.push_back(defineListItem("close", "what is this", "kys", 20, 4));
-    shopItems.push_back(defineListItem("buyButton", "NO", "this is for buying what", 2, 5));
-    for (auto& item : shopItems) {
-        if (stats->record[item.id] == '0') {
-            itemOrder.push_back(item.id);
-        } else {
-            rollback(shopItems, item.pos);
-        }
-    }
 
 
-    while (window.isOpen()) {
-        window.clear(Color(0,1,0));
-        money.setString('$' + to_string(stats->money));
-        window.draw(background.rectangle);
-        window.draw(money);
-        window.draw(close.rectangle);
-        for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
-            int ind = itemOrder[i];
-            //MessageBox(NULL, to_string(ind).c_str(), "Debug", MB_OK);
-            window.draw(shopItems[ind].image.rectangle);
-            window.draw(shopItems[ind].buy.rectangle);
-            window.draw(shopItems[ind].cost);
-            window.draw(shopItems[ind].description);
-            window.draw(shopItems[ind].title);
-        }
-        //USE SECONDARY ARRAY OF ORDER TO REFERENCE WITH EACH THING BEING AN ID ALLOWING FOR BETTER ARRANGEMENT
-        if ((int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
-            window.draw(arrowForward.rectangle);
-        if ((int)pageNum > 0)
-            window.draw(arrowBackward.rectangle);
+        while (window.isOpen()) {
+            window.clear(Color(0,1,0));
+            money.setString('$' + to_string(stats->money));
+            window.draw(background.rectangle);
+            window.draw(money);
+            window.draw(close.rectangle);
+            for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
+                int ind = itemOrder[i];
+                //MessageBox(NULL, to_string(ind).c_str(), "Debug", MB_OK);
+                window.draw(shopItems[ind].image.rectangle);
+                window.draw(shopItems[ind].buy.rectangle);
+                window.draw(shopItems[ind].cost);
+                window.draw(shopItems[ind].description);
+                window.draw(shopItems[ind].title);
+            }
+            //USE SECONDARY ARRAY OF ORDER TO REFERENCE WITH EACH THING BEING AN ID ALLOWING FOR BETTER ARRANGEMENT
+            if ((int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+                window.draw(arrowForward.rectangle);
+            if ((int)pageNum > 0)
+                window.draw(arrowBackward.rectangle);
 
-        window.display();
+            window.display();
 
-        while (const optional event = window.pollEvent()) {
-             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
-                if (mousePressed->button == Mouse::Button::Right)
-                    MessageBox(NULL, to_string(pageNum).c_str(), "Debug", MB_OK);
-                if (mousePressed->button == Mouse::Button::Left) {
-                    Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
-                        int ind = itemOrder[i];
-                        if (shopItems[ind].buy.rectangle.getGlobalBounds().contains(mousePos)) {
-                            if (stats->money >= stoi((string)shopItems[ind].cost.getString())) {
-                                stats->record[ind] = '1';
-                                stats->money -= stoi((string)shopItems[ind].cost.getString());
-                                itemOrder.erase(itemOrder.begin() + i);
-                                rollback(shopItems, shopItems[ind].pos);
+            while (const optional event = window.pollEvent()) {
+                if (event->is<Event::Closed>()) {
+                    utilitiesManager::close(window, *stats);
+                }
+                if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                    if (mousePressed->button == Mouse::Button::Left) {
+                        Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                        for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
+                            int ind = itemOrder[i];
+                            if (shopItems[ind].buy.rectangle.getGlobalBounds().contains(mousePos)) {
+                                if (stats->money >= stoi((string)shopItems[ind].cost.getString())) {
+                                    stats->record[ind] = '1';
+                                    stats->money -= stoi((string)shopItems[ind].cost.getString());
+                                    itemOrder.erase(itemOrder.begin() + i);
+                                    utilitiesManager::rollback(shopItems, shopItems[ind].pos);
+                                }
                             }
                         }
+                        if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
+                            pageNum--;
+                        else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+                            pageNum++;
+                        else if (close.rectangle.getGlobalBounds().contains(mousePos))
+                            return;
                     }
-                    if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
-                        pageNum--;
-                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
-                        pageNum++;
-                    else if (close.rectangle.getGlobalBounds().contains(mousePos))
-                        return;
-                }
 
+                }
             }
         }
     }
-}
+};
+
 
 
 int main() {
@@ -293,8 +317,8 @@ int main() {
     ifstream fin("stats.txt");
     Stats stats;
     fin >> stats.hunger >> stats.mood >> stats.money >> stats.record >> stats.hash;
-    if (stats.hash != hasher(stats.record))
-        return 0;
+    if (stats.hash != utilitiesManager::hasher(stats.record))
+       return 0;
 
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
@@ -311,25 +335,34 @@ int main() {
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(0,1,0), 0, LWA_COLORKEY);
 
-    RectangleImage spriteBase = defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
-    RectangleImage cornerMove = defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
-    RectangleImage shopButton = defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
-    RectangleImage tasksButton = defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
-    RectangleImage barBase = defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
+    RectangleImage spriteBase = creationManager::defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
+    RectangleImage cornerMove = creationManager::defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
+    RectangleImage shopButton = creationManager::defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
+    RectangleImage tasksButton = creationManager::defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
+    RectangleImage barBase = creationManager::defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
 
     
     vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
     for (int i = 0; i < 4; i++) {
-        barHelpers[i] = createRectangle(30, 20, 250, 150 + (i * -20));
+        barHelpers[i] = creationManager::defineRectangle(30, 20, 250, 150 + (i * -20));
         barHelpers[i].setFillColor(stats.hunger > i * 25 ? DEFAULT_GREEN : DARK_GREEN);
     }
 
-    Text hungerText = createText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
-    Text moneyText = createText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
-    Text nameText = createText(30, 150, 10, DEFAULT_GREEN, enterName(window));
-    textRecenter(nameText, "middle");
+    Text hungerText = creationManager::defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
+    Text moneyText = creationManager::defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
 
-    thread hungerDecay(statDecay, ref(stats));
+    if (stats.record[stats.record.size() - 1] - '0')
+        fin >> stats.name;
+    else
+        stats.name = windowManager::enterName(window, stats);
+    if (stats.name == "CLOSE PLEASE")
+        return 0;
+    stats.record[stats.record.size() - 1] = '1';
+
+    Text nameText = creationManager:: defineText(30, 150, 10, DEFAULT_GREEN, stats.name);
+    utilitiesManager::textRecenter(nameText, "middle");
+
+    statDecayThread = thread(utilitiesManager::statDecay, stats);
 
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
@@ -350,15 +383,14 @@ int main() {
 
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
-                window.close();
-                save(stats);
+                utilitiesManager::close(window, stats);
             }
             
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        shopMenu(&stats, window);
+                        windowManager::shopMenu(&stats, window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.hunger++;
                     }
@@ -370,7 +402,7 @@ int main() {
                     stats.hunger -= 5;
             }
         }
-
-        barManagment(stats, barHelpers);
+        utilitiesManager::barManagment(stats, barHelpers);
     }
+    return 0;
 }
