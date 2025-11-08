@@ -168,7 +168,9 @@ public:
 class creationManager {
 public:
     static void defineTexture(std::shared_ptr<Texture>& texPtr, const string& filePath) {
-        texPtr = make_shared<Texture>();
+        if (!texPtr)
+            texPtr = make_shared<Texture>();
+
         string fullPath = "sprites/" + filePath + ".png";
         if (!texPtr->loadFromFile(fullPath)) {
             MessageBox(NULL, (filePath + " Load Fail").c_str(), "Texture Error", MB_OK);
