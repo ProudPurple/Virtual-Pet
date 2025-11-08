@@ -15,12 +15,18 @@ const Color DEFAULT_GREEN = Color(34,177,76);
 const Color LIGHT_GREEN = Color(18, 219, 18);
 const Color DARK_GREEN = Color(5, 51, 6);
 
-thread statDecayThread;
+thread backgroundThread;
 atomic<bool> running = true;
+int tick;
+
+class utilitiesManager;
+class creationManager;
+class windowManager;
 
 struct Stats {
     int hunger;
     int money;
+    int happiness;
     int hash;
     string name;
     string mood;
@@ -65,28 +71,33 @@ public:
         ofstream fout("stats.txt");
         fout << stats.hunger << ' '
         << stats.money << ' '
-        << stats.mood << ' '
+        << stats.happiness << ' '
         << stats.record << ' '
-        << utilitiesManager::hasher(stats.record) << ' '
-        << stats.name << endl;
+        << hasher(stats.record) << ' '
+        << stats.name << ' '
+        << stats.mood << endl;
     }
 
     static void close(RenderWindow& window, Stats stats) {
         window.close();
         running = false;
-        statDecayThread.join();
+        backgroundThread.join();
         save(stats);
     }
 
-    static void statDecay(Stats& stats) {
-        int frame = 0;
+    static void background(Stats& stats) {
         while (true && running) {
-            frame++;
-            stats.hunger--;
-
-            if (frame % 5 == 0)
+            tick++;
+            if (tick % 20) {
+                stats.hunger--;
+            }
+            if (tick % 50) {
                 stats.money += 5;
-            this_thread::sleep_for(chrono::seconds(1));
+            }
+            moodManager(stats);
+            if (tick >= 100000)
+                tick = 1;
+            this_thread::sleep_for(chrono::milliseconds(2000));
         }
     }
 
@@ -108,6 +119,18 @@ public:
             barHelpers[1].setFillColor(DEFAULT_GREEN);
         else if (stats.hunger > 0)
             barHelpers[0].setFillColor(DEFAULT_GREEN);
+    }
+
+    static void moodManager(Stats& stats) {
+        if (stats.happiness <= 40 && tick % 100 == 0 && rand() % 4) {
+            stats.mood = "sick";
+        } else if (stats.hunger <= 0) {
+            stats.mood = "mad";
+        } else if (stats.happiness <= 0) {
+            stats.mood = "sad";
+        } else {
+            stats.mood = "normal";
+        }
     }
 
     static void rollback(vector<listItem>& base, int start) {
@@ -144,7 +167,7 @@ public:
 
 class creationManager {
 public:
-    static void textureDefine(std::shared_ptr<Texture>& texPtr, const string& filePath) {
+    static void defineTexture(std::shared_ptr<Texture>& texPtr, const string& filePath) {
         texPtr = make_shared<Texture>();
         string fullPath = "sprites/" + filePath + ".png";
         if (!texPtr->loadFromFile(fullPath)) {
@@ -164,11 +187,11 @@ public:
     static listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
         listItem item;
         item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(60, 40 + 60 * (id % 3)));
-        item.title = creationManager::defineText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
+        item.title = defineText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
         utilitiesManager::textRecenter(item.title, "middle");
-        item.description = creationManager::defineText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
+        item.description = defineText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
         utilitiesManager::textRecenter(item.description, "middle");
-        item.cost = creationManager::defineText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
+        item.cost = defineText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
         utilitiesManager::textRecenter(item.cost, "middle");
         item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
         item.id = id;
@@ -186,10 +209,24 @@ public:
         return txt;
     }
 
+    static void mainSpriteControl(Stats stats, shared_ptr<Texture>& texture) {
+        if (stats.mood == "mad")
+            defineTexture(texture, "catMad");
+        else if (stats.mood == "sick")
+            defineTexture(texture, "catSick");
+        else if (stats.mood == "sad")
+            defineTexture(texture, "catSad");
+        else if (stats.mood == "normal")
+            if (stats.record[1]) 
+                defineTexture(texture, "catRich");
+            else
+                defineTexture(texture, "catNormal");
+    }
+
     static RectangleImage defineRectangleImage(string filepath, Vector2f size, Vector2f pos) {
         RectangleImage rect;
-        rect.rectangle = creationManager::defineRectangle(size.x, size.y, pos.x, pos.y);
-        textureDefine(rect.texture, filepath);
+        rect.rectangle = defineRectangle(size.x, size.y, pos.x, pos.y);
+        defineTexture(rect.texture, filepath);
         if (rect.texture) rect.rectangle.setTexture(rect.texture.get());
         return move(rect);
     }
@@ -241,7 +278,7 @@ public:
         vector<listItem> shopItems;
         vector<int> itemOrder;
         shopItems.push_back(creationManager::defineListItem());
-        shopItems.push_back(creationManager::defineListItem("catSick", "SOOO SICK", "CAT IS SICK :<", 1000, 1));
+        shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "now this is some\nreal cash", 1000, 1));
         shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
         shopItems.push_back(creationManager::defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
         shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 20, 4));
@@ -313,13 +350,17 @@ public:
 
 
 int main() {
+    creationManager creations;
+    utilitiesManager utilities;
+
     //Takes in saved stats from txt file
     ifstream fin("stats.txt");
     Stats stats;
-    fin >> stats.hunger >> stats.mood >> stats.money >> stats.record >> stats.hash;
+    fin >> stats.hunger >> stats.money >> stats.happiness >> stats.record >> stats.hash;
+    stats.hash = utilities.hasher(stats.record);
     if (stats.hash != utilitiesManager::hasher(stats.record))
-       return 0;
-
+      return 0;
+    
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
 
@@ -335,21 +376,21 @@ int main() {
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(0,1,0), 0, LWA_COLORKEY);
 
-    RectangleImage spriteBase = creationManager::defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
-    RectangleImage cornerMove = creationManager::defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
-    RectangleImage shopButton = creationManager::defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
-    RectangleImage tasksButton = creationManager::defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
-    RectangleImage barBase = creationManager::defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
+    RectangleImage spriteBase = creations.defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
+    RectangleImage cornerMove = creations.defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
+    RectangleImage shopButton = creations.defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
+    RectangleImage tasksButton = creations.defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
+    RectangleImage barBase = creations.defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
 
     
     vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
     for (int i = 0; i < 4; i++) {
-        barHelpers[i] = creationManager::defineRectangle(30, 20, 250, 150 + (i * -20));
+        barHelpers[i] = creations.defineRectangle(30, 20, 250, 150 + (i * -20));
         barHelpers[i].setFillColor(stats.hunger > i * 25 ? DEFAULT_GREEN : DARK_GREEN);
     }
 
-    Text hungerText = creationManager::defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
-    Text moneyText = creationManager::defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
+    Text hungerText = creations.defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
+    Text moneyText = creations.defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
 
     if (stats.record[stats.record.size() - 1] - '0')
         fin >> stats.name;
@@ -359,13 +400,18 @@ int main() {
         return 0;
     stats.record[stats.record.size() - 1] = '1';
 
-    Text nameText = creationManager:: defineText(30, 150, 10, DEFAULT_GREEN, stats.name);
-    utilitiesManager::textRecenter(nameText, "middle");
+    Text nameText = creations.defineText(30, 150, 10, DEFAULT_GREEN, stats.name);
+    utilities.textRecenter(nameText, "middle");
 
-    statDecayThread = thread(utilitiesManager::statDecay, stats);
+    fin >> stats.mood;
+    backgroundThread = thread(utilities.background, ref(stats));
 
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
+ 
+        if (tick % 20)
+            creations.mainSpriteControl(stats, spriteBase.texture);
+                    //MessageBox(NULL, stats.mood.c_str(), "Debug", MB_OK);
         window.draw(spriteBase.rectangle);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
@@ -392,7 +438,7 @@ int main() {
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         windowManager::shopMenu(&stats, window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
-                        stats.hunger++;
+                        stats.happiness++;
                     }
                 }
             }
