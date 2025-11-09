@@ -11,6 +11,13 @@
 using namespace sf;
 using namespace std;
 
+/*###############################################
+#                    TODO:                      #
+#              MINIGAME TIME!!!                 #      
+#                                               #
+###############################################*/
+
+
 const Font FONT("RasterForgeRegular-JpBgm.ttf");
 const Color DEFAULT_GREEN = Color(34,177,76);
 const Color LIGHT_GREEN = Color(18, 219, 18);
@@ -18,7 +25,26 @@ const Color DARK_GREEN = Color(5, 51, 6);
 
 thread backgroundThread;
 atomic<bool> running = true;
-int tick;
+
+struct Totals {
+    int moneySpent;
+    int moneyGained;
+    int foodEaten;
+    int timesSick;
+    int tick;
+    long long time;
+
+    Totals()
+        : moneySpent(0),
+        moneyGained(0),
+        foodEaten(0),
+        timesSick(0),
+        tick(0),
+        time(0)
+    {}
+};
+
+Totals totals;
 
 struct Stats {
     int hunger;
@@ -73,6 +99,13 @@ public:
         << hasher(stats.record) << ' '
         << stats.name << ' '
         << stats.mood << endl;
+
+        fout << totals.foodEaten << ' '
+        << totals.moneyGained << ' ' 
+        << totals.moneySpent << ' '
+        << totals.tick << ' '
+        << totals.time << ' '
+        << totals.timesSick << endl;
     }
 
     static void close(RenderWindow& window, Stats stats) {
@@ -84,17 +117,22 @@ public:
 
     static void background(Stats& stats) {
         while (true && running) {
-            tick++;
+            totals.tick++;
             
-            if (tick % 20 == 0) {
+            if (totals.tick % (stats.mood == "sick" ? 3 : 10) == 0 && stats.hunger >= 0) {
                 stats.hunger--;
             }
-            if (tick % 50 == 0) {
+            if (totals.tick % 50 == 0) {
                 stats.money += 5;
+                totals.moneyGained += 5;
             }
+            if (totals.tick % 5 == 0)
+                totals.time++;
+            if (totals.tick % 900 == 0)
+                save(stats);
             moodManager(stats);
-            if (tick >= 100000)
-                tick = 1;
+            if (totals.tick >= 100000)
+                totals.tick = 1;
             this_thread::sleep_for(chrono::milliseconds(200));
         }
     }
@@ -120,7 +158,9 @@ public:
     }
 
     static void moodManager(Stats& stats) {
-        if (stats.happiness <= 40 && tick % 100 == 0 && rand() % 4) {
+        if (stats.happiness <= 70 && totals.tick % 120 == 0 && rand() % 3 == 0 || stats.mood == "sick") {
+            if (stats.mood != "sick")
+                totals.timesSick++;
             stats.mood = "sick";
         } else if (stats.hunger <= 0) {
             stats.mood = "mad";
@@ -247,7 +287,7 @@ public:
         else if (stats.mood == "sad")
             defineTexture(texture, "catSad");
         else if (stats.mood == "normal")
-            if (stats.record[1]) 
+            if (stats.record[5] - '0') 
                 defineTexture(texture, "catRich");
             else
                 defineTexture(texture, "catNormal");
@@ -308,11 +348,11 @@ public:
         vector<listItem> shopItems;
         vector<int> itemOrder;
         shopItems.push_back(creationManager::defineListItem("foodBag", "Food", "FEED", 5, 0));
-        shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "now this is some\nreal cash", 1000, 1));
+        shopItems.push_back(creationManager::defineListItem("medKit", "Healing", "Lets you help\na sick pet", 15, 1));
         shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
         shopItems.push_back(creationManager::defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
-        shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 20, 4));
-        shopItems.push_back(creationManager::defineListItem("buyButton", "NO", "this is for buying what", 2, 5));
+        shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 10, 4));
+        shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 5));
         for (auto& item : shopItems) {
             if (stats->record[item.id] == '0') {
                 itemOrder.push_back(item.id);
@@ -358,6 +398,7 @@ public:
                                 if (stats->money >= stoi((string)shopItems[ind].cost.getString())) {
                                     stats->record[ind] = '1';
                                     stats->money -= stoi((string)shopItems[ind].cost.getString());
+                                    totals.moneySpent += stoi((string)shopItems[ind].cost.getString());
                                     itemOrder.erase(itemOrder.begin() + i);
                                     utilitiesManager::roll(shopItems, shopItems[ind].pos, "backwards");
                                 }
@@ -376,7 +417,53 @@ public:
         }
     }
 
-    static void taskMenu(Stats& stats, RenderWindow& window) {
+    static void statDisplay(Stats* stats, RenderWindow& window) {
+        RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
+        RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
+        Text title = creationManager::defineText(15, 150, 20, DEFAULT_GREEN, "All Time Stats");
+        utilitiesManager::textRecenter(title, "middle");
+        vector<Text> statList;
+        statList.push_back(creationManager::defineText(10, 150, 40, DEFAULT_GREEN, "Money Spent: " + to_string(totals.moneySpent)));
+        statList.push_back(creationManager::defineText(10, 150, 55, DEFAULT_GREEN, "Money Gained: " + to_string(totals.moneyGained)));
+        statList.push_back(creationManager::defineText(10, 150, 70, DEFAULT_GREEN, "Food Eaten: " + to_string(totals.foodEaten)));
+        statList.push_back(creationManager::defineText(10, 150, 85, DEFAULT_GREEN, "Seconds Spent: " + to_string(totals.time)));
+        statList.push_back(creationManager::defineText(10, 150, 100, DEFAULT_GREEN, "Times Sick: " + to_string(totals.timesSick)));
+
+        for (auto& txt : statList) 
+            utilitiesManager::textRecenter(txt, "middle");
+
+        while (window.isOpen()) {
+            window.clear(Color(0,1,0));
+
+            statList[1].setString("Money Gained: " + to_string(totals.moneyGained));
+            statList[3].setString("Seconds Spent: " + to_string(totals.time));
+
+            window.draw(background.rectangle);
+            window.draw(close.rectangle);
+            window.draw(title);
+            for (auto txt : statList)
+                window.draw(txt);
+            window.display();
+
+             while (const optional event = window.pollEvent()) {
+                if (event->is<Event::Closed>()) {
+                    utilitiesManager::close(window, *stats);
+                }
+
+                if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                    if (mousePressed->button == Mouse::Button::Left) {
+                        Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                        if (close.rectangle.getGlobalBounds().contains(mousePos)) {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    static void taskMenu(Stats* stats, RenderWindow& window) {
         RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
         RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
         RectangleImage arrowForward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
@@ -389,32 +476,34 @@ public:
         taskList.push_back(creationManager::defineListItem("foodBag", "FEED", "feed him", -1, 0));
         taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
         taskList.push_back(creationManager::defineListItem("hand", "what?", "where do you\nkeep finding this", -1, 2));
-        taskList.push_back(creationManager::defineListItem("catMad", "UH OH", "MAD", -1, 3));
+        taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
         taskList.push_back(creationManager::defineListItem("catRich", "MOOLAH", "Make That\nMONEY", -1, 4));
+        taskList.push_back(creationManager::defineListItem("statsImage", "stats", "see your stats", -1, taskList.size()));
         vector<int> taskOrder;
         
-        if (stats.record[0] - '0')
+        if (stats->record[0] - '0')
             taskOrder.push_back(0);
-        if (stats.mood == "sad")
+        if (stats->mood == "sad")
             taskOrder.push_back(1);
-        if (stats.record[1] - '0')
+        if (stats->record[2] - '0')
             taskOrder.push_back(2);
-        if (stats.record[2] - '0')
+        if (stats->mood == "sick" && stats->record[1] - '0')
             taskOrder.push_back(3);
-        if (stats.record[3] - '0')
+        if (stats->record[3] - '0')
             taskOrder.push_back(4);
+        taskOrder.push_back(taskList.size()-1);
         
         while (window.isOpen()) {
-            if (tick % 10 == 0) {
-                if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end())
+            if (totals.tick % 10 == 0) {
+                if (stats->record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end())
                     taskOrder.push_back(0);
-                if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
+                if (stats->mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
                     taskOrder.push_back(1);
-                if (stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
+                if (stats->record[2] - '0' && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
                     taskOrder.push_back(2);
-                if (stats.record[2] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
+                if (stats->mood == "sick" && stats->record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
                     taskOrder.push_back(3);
-                if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
+                if (stats->record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
                     taskOrder.push_back(4);
             }
             window.clear(Color(0,1,0));
@@ -424,7 +513,6 @@ public:
                 window.draw(arrowForward.rectangle);
             if ((int)pageNum > 0)
                 window.draw(arrowBackward.rectangle);
-         
             for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
                 listItem& item = taskList[taskOrder[i]];
                 while (item.pos < i) {
@@ -443,7 +531,7 @@ public:
 
             while (const optional event = window.pollEvent()) {
                 if (event->is<Event::Closed>()) {
-                    utilitiesManager::close(window, stats);
+                    utilitiesManager::close(window, *stats);
                 }
                 if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                     if (mousePressed->button == Mouse::Button::Left) {
@@ -452,12 +540,19 @@ public:
                             listItem& item = taskList[taskOrder[i]];
                             if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
                                 if (item.id == 0) {
-                                    stats.hunger += 70;
-                                    stats.record[0] = '0';
+                                    stats->hunger += 70;
+                                    stats->record[0] = '0';
+                                    totals.foodEaten++;
                                     taskOrder.erase(taskOrder.begin() + i);
                                 } else if (item.id == 1) {
-                                    stats.happiness += 35;
+                                    stats->happiness += 35;
                                     taskOrder.erase(taskOrder.begin() + i);
+                                } else if (item.id == 3) {
+                                    stats->mood = "normal";
+                                    stats->record[1] = '0';
+                                    taskOrder.erase(taskOrder.begin() + i);
+                                } else if (item.id == 5) {
+                                    statDisplay(stats, window);
                                 }
                             }
                         }
@@ -487,7 +582,7 @@ int main() {
     fin >> stats.hunger >> stats.money >> stats.happiness >> stats.record >> stats.hash;
     stats.hash = utilities.hasher(stats.record);
     if (stats.hash != utilitiesManager::hasher(stats.record))
-      return 0;
+        return 0;
     
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
@@ -506,8 +601,8 @@ int main() {
 
     RectangleImage spriteBase = creations.defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
     RectangleImage cornerMove = creations.defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
-    RectangleImage shopButton = creations.defineRectangleImage("shopButton", Vector2f(100, 100), Vector2f(45, 85));
-    RectangleImage tasksButton = creations.defineRectangleImage("tasksButton", Vector2f(100, 100), Vector2f(45, 155));
+    RectangleImage shopButton = creations.defineRectangleImage("shopButton", Vector2f(50, 50), Vector2f(45, 85));
+    RectangleImage tasksButton = creations.defineRectangleImage("tasksButton", Vector2f(50, 50), Vector2f(45, 155));
     RectangleImage barBase = creations.defineRectangleImage("hungerBar", Vector2f(115, 115), Vector2f(250, 120));
 
     
@@ -534,10 +629,12 @@ int main() {
     fin >> stats.mood;
     backgroundThread = thread(utilities.background, ref(stats));
 
+    fin >> totals.foodEaten >> totals.moneyGained >> totals.moneySpent >> totals.tick >> totals.time >> totals.timesSick;
+
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
  
-        if (tick % 20)
+        if (totals.tick % 10)
             creations.mainSpriteControl(stats, spriteBase.texture);
                     //MessageBox(NULL, stats.mood.c_str(), "Debug", MB_OK);
         window.draw(spriteBase.rectangle);
@@ -566,16 +663,11 @@ int main() {
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         windowManager::shopMenu(&stats, window);
                     } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        windowManager::taskMenu(stats, window);
+                        windowManager::taskMenu(&stats, window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.happiness++;
                     }
                 }
-            }
-
-            if (const auto* keyPressed = event->getIf<Event::KeyPressed>()) {           
-                if (Keyboard::isKeyPressed(Keyboard::Key::A))
-                    stats.hunger -= 5;
             }
         }
         utilitiesManager::barManagment(stats, barHelpers);
