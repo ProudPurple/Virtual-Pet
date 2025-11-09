@@ -2,6 +2,7 @@
 #include <SFML/Window.hpp>
 #include <Windows.h>
 #include <thread>
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -18,10 +19,6 @@ const Color DARK_GREEN = Color(5, 51, 6);
 thread backgroundThread;
 atomic<bool> running = true;
 int tick;
-
-class utilitiesManager;
-class creationManager;
-class windowManager;
 
 struct Stats {
     int hunger;
@@ -88,36 +85,37 @@ public:
     static void background(Stats& stats) {
         while (true && running) {
             tick++;
-            if (tick % 20) {
+            
+            if (tick % 20 == 0) {
                 stats.hunger--;
             }
-            if (tick % 50) {
+            if (tick % 50 == 0) {
                 stats.money += 5;
             }
             moodManager(stats);
             if (tick >= 100000)
                 tick = 1;
-            this_thread::sleep_for(chrono::milliseconds(2000));
+            this_thread::sleep_for(chrono::milliseconds(200));
         }
     }
 
     static void barManagment(Stats stats, vector<RectangleShape> &barHelpers) {
         if (stats.hunger <= 0)
             barHelpers[0].setFillColor(DARK_GREEN);
-        else if (stats.hunger <= 25)
+        if (stats.hunger <= 25)
             barHelpers[1].setFillColor(DARK_GREEN);
-        else if (stats.hunger <= 50)
+        if (stats.hunger <= 50)
             barHelpers[2].setFillColor(DARK_GREEN);
-        else if (stats.hunger <= 75)
+        if (stats.hunger <= 75)
             barHelpers[3].setFillColor(DARK_GREEN);
 
         if (stats.hunger > 75)
             barHelpers[3].setFillColor(DEFAULT_GREEN);
-        else if (stats.hunger > 50)
+        if (stats.hunger > 50)
             barHelpers[2].setFillColor(DEFAULT_GREEN);
-        else if (stats.hunger > 25)
+        if (stats.hunger > 25)
             barHelpers[1].setFillColor(DEFAULT_GREEN);
-        else if (stats.hunger > 0)
+        if (stats.hunger > 0)
             barHelpers[0].setFillColor(DEFAULT_GREEN);
     }
 
@@ -133,26 +131,52 @@ public:
         }
     }
 
-    static void rollback(vector<listItem>& base, int start) {
+    static void rollforward(listItem& item) {
+        if (item.pos % 3 == 2) {
+            item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
+            item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
+            item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
+            item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
+            item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
+        } else {
+            item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,60));
+            item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 60));
+            item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 60));
+            item.description.setPosition(item.description.getPosition() + Vector2f(0, 60));
+            item.title.setPosition(item.title.getPosition() + Vector2f(0, 60));
+        }
+        item.pos++;
+    }
+
+    static void rollbackward(listItem& item) {
+        if (item.pos % 3 == 0) {
+            item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
+            item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
+            item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
+            item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
+            item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
+        } else {
+            item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
+            item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
+            item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
+            item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
+            item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
+        }
+        item.pos--;
+    }
+
+    static void roll(vector<listItem>& base, int start, string command) {
         for (auto& item : base) {
-            string test = item.title.getString();
-            if (item.pos > start) {
-                if (item.pos % 3 == 0) {
-                    item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
-                    item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
-                    item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
-                    item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
-                    item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
-                } else {
-                    item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
-                    item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
-                    item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
-                    item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
-                    item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
+            if (command == "backwards") {
+                if (item.pos > start) {
+                    rollbackward(item);
+                } else if (item.pos == start) {
+                    item.pos = -1;
                 }
-                item.pos--;
-            } else if (item.pos == start) {
-                item.pos = -1;
+            } else if (command == "forwards") {
+                if (item.pos > start) {
+                    rollforward(item);
+                }
             }
         }
     }
@@ -188,14 +212,18 @@ public:
     
     static listItem defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
         listItem item;
-        item.image = defineRectangleImage(filepath, Vector2f(75,75), Vector2f(60, 40 + 60 * (id % 3)));
+        item.image = defineRectangleImage(filepath, Vector2f(60,60), Vector2f(60, 40 + 60 * (id % 3)));
         item.title = defineText(13, 160, 20 + 60 * (id % 3), DEFAULT_GREEN, title);
         utilitiesManager::textRecenter(item.title, "middle");
         item.description = defineText(10, 165, 50 + 60 * (id % 3), DEFAULT_GREEN, description);
         utilitiesManager::textRecenter(item.description, "middle");
-        item.cost = defineText(10, 240, 45 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
-        utilitiesManager::textRecenter(item.cost, "middle");
-        item.buy = defineRectangleImage("buyButton", Vector2f(50,50), Vector2f(240, 40 + 60 * (id%3)));
+        if (cost == -1) {
+            item.buy = defineRectangleImage("startButton", Vector2f(40,40), Vector2f(250, 35 + 60 * (id % 3)));
+        } else {
+            item.cost = defineText(10, 250, 40 + 60 * (id % 3), DEFAULT_GREEN, to_string(cost));
+            utilitiesManager::textRecenter(item.cost, "middle");
+            item.buy = defineRectangleImage("buyButton", Vector2f(40,40), Vector2f(250, 35 + 60 * (id%3)));
+        }
         item.id = id;
         item.pos = id;
         return item;
@@ -279,7 +307,7 @@ public:
         Text money = creationManager::defineText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats->money));
         vector<listItem> shopItems;
         vector<int> itemOrder;
-        shopItems.push_back(creationManager::defineListItem());
+        shopItems.push_back(creationManager::defineListItem("foodBag", "Food", "FEED", 5, 0));
         shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "now this is some\nreal cash", 1000, 1));
         shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
         shopItems.push_back(creationManager::defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
@@ -289,7 +317,7 @@ public:
             if (stats->record[item.id] == '0') {
                 itemOrder.push_back(item.id);
             } else {
-                utilitiesManager::rollback(shopItems, item.pos);
+                utilitiesManager::roll(shopItems, item.pos, "backwards");
             }
         }
 
@@ -331,13 +359,111 @@ public:
                                     stats->record[ind] = '1';
                                     stats->money -= stoi((string)shopItems[ind].cost.getString());
                                     itemOrder.erase(itemOrder.begin() + i);
-                                    utilitiesManager::rollback(shopItems, shopItems[ind].pos);
+                                    utilitiesManager::roll(shopItems, shopItems[ind].pos, "backwards");
                                 }
                             }
                         }
                         if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
                             pageNum--;
                         else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+                            pageNum++;
+                        else if (close.rectangle.getGlobalBounds().contains(mousePos))
+                            return;
+                    }
+
+                }
+            }
+        }
+    }
+
+    static void taskMenu(Stats& stats, RenderWindow& window) {
+        RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
+        RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
+        RectangleImage arrowForward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
+        RectangleImage arrowBackward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
+        Angle flip = degrees(180);
+        arrowBackward.rectangle.rotate(flip);
+
+        int pageNum = 0;
+        vector<listItem> taskList;
+        taskList.push_back(creationManager::defineListItem("foodBag", "FEED", "feed him", -1, 0));
+        taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
+        taskList.push_back(creationManager::defineListItem("hand", "what?", "where do you\nkeep finding this", -1, 2));
+        taskList.push_back(creationManager::defineListItem("catMad", "UH OH", "MAD", -1, 3));
+        taskList.push_back(creationManager::defineListItem("catRich", "MOOLAH", "Make That\nMONEY", -1, 4));
+        vector<int> taskOrder;
+        
+        if (stats.record[0] - '0')
+            taskOrder.push_back(0);
+        if (stats.mood == "sad")
+            taskOrder.push_back(1);
+        if (stats.record[1] - '0')
+            taskOrder.push_back(2);
+        if (stats.record[2] - '0')
+            taskOrder.push_back(3);
+        if (stats.record[3] - '0')
+            taskOrder.push_back(4);
+        
+        while (window.isOpen()) {
+            if (tick % 10 == 0) {
+                if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end())
+                    taskOrder.push_back(0);
+                if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
+                    taskOrder.push_back(1);
+                if (stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
+                    taskOrder.push_back(2);
+                if (stats.record[2] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
+                    taskOrder.push_back(3);
+                if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
+                    taskOrder.push_back(4);
+            }
+            window.clear(Color(0,1,0));
+            window.draw(background.rectangle);
+            window.draw(close.rectangle);
+           if ((int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size() > 3)
+                window.draw(arrowForward.rectangle);
+            if ((int)pageNum > 0)
+                window.draw(arrowBackward.rectangle);
+         
+            for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
+                listItem& item = taskList[taskOrder[i]];
+                while (item.pos < i) {
+                    utilitiesManager::rollforward(item);
+                }
+                while (item.pos > i) {
+                    utilitiesManager::rollbackward(item);
+                }
+                window.draw(item.image.rectangle);
+                window.draw(item.buy.rectangle);
+                window.draw(item.description);
+                window.draw(item.title);
+            }
+
+            window.display();
+
+            while (const optional event = window.pollEvent()) {
+                if (event->is<Event::Closed>()) {
+                    utilitiesManager::close(window, stats);
+                }
+                if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                    if (mousePressed->button == Mouse::Button::Left) {
+                        Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                        for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
+                            listItem& item = taskList[taskOrder[i]];
+                            if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
+                                if (item.id == 0) {
+                                    stats.hunger += 70;
+                                    stats.record[0] = '0';
+                                    taskOrder.erase(taskOrder.begin() + i);
+                                } else if (item.id == 1) {
+                                    stats.happiness += 35;
+                                    taskOrder.erase(taskOrder.begin() + i);
+                                }
+                            }
+                        }
+                        if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
+                            pageNum--;
+                        else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size() > 3)
                             pageNum++;
                         else if (close.rectangle.getGlobalBounds().contains(mousePos))
                             return;
@@ -439,6 +565,8 @@ int main() {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         windowManager::shopMenu(&stats, window);
+                    } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
+                        windowManager::taskMenu(stats, window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         stats.happiness++;
                     }
