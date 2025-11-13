@@ -14,4 +14,5 @@ public:
     static void rollbackward(listItem& item);
     static void roll(vector<listItem>& base, int start, string command);
     static void textRecenter(Text& text, string command);
+    static void closeManager(RenderWindow& window);
 };

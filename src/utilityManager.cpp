@@ -18,7 +18,6 @@ int utilitiesManager::hasher(string record) {
     return i;
 }
 
-
 void utilitiesManager::takeInStats() {
     ifstream fin("stats.txt");
     fin >> stats.hunger >> stats.money >> stats.happiness >> stats.record >> stats.hash;

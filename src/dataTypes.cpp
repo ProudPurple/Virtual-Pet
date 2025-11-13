@@ -7,14 +7,19 @@ listItem::listItem()
     cost(FONT, "0", 10)
 {}
 
+Animation::Animation()
+    : start(0),
+    time(0)
+{}
+
 Totals::Totals()
-        : moneySpent(0),
-        moneyGained(0),
-        foodEaten(0),
-        timesSick(0),
-        tick(0),
-        time(0)
-    {}
+    : moneySpent(0),
+    moneyGained(0),
+    foodEaten(0),
+    timesSick(0),
+    tick(0),
+    time(0)
+{}
 
 Stats::Stats()
     : hunger(0),

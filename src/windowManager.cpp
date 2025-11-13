@@ -162,13 +162,132 @@ void windowManager::statDisplay(RenderWindow& window) {
     return;
 }
 
+int windowManager::foodMini(RenderWindow& window) {
+    RectangleImage foodBag = creationManager::defineRectangleImage("foodBag", Vector2f(100, 100), Vector2f(150,50));
+    RectangleImage foodBowl = creationManager::defineRectangleImage("foodBowl", Vector2f(100,50), Vector2f(150,200));
+    Text timeText = creationManager::defineText(20, 150, 130, DEFAULT_GREEN, "3");
+    Text instructions = creationManager::defineText(15, 160, 100, DEFAULT_GREEN, "The bowl will move to your\nmouse catch the food with it!");
+    utilitiesManager::textRecenter(instructions, "middle");
+    vector<RectangleImage> foodFall;
+    foodBag.rectangle.rotate(degrees(180));
+    int foodTotal = 0, speed = 2, curTick = totals.tick, offset = 4, start = totals.time;
+    bool movement = false;
+    while (window.isOpen() && totals.time <= start + 14) {
+        if (totals.time <= start + 3) {
+            window.clear(Color(0,1,0));
+            timeText.setString(to_string(start + 4 - totals.time));
+            window.draw(timeText);
+            window.draw(instructions);
+            window.draw(foodBag.rectangle);
+            window.draw(foodBowl.rectangle);
+            window.display();
+        } else {
+            timeText.setPosition(Vector2f(20,20));
+            if (totals.tick % offset == 0 && curTick != totals.tick) {
+                offset += rand() % 2 * movement ? -1 : 1;
+                if (offset > 5) offset = 5;
+                if (offset < 1) offset = 1;
+                curTick = totals.tick;
+                foodFall.push_back(creationManager::defineRectangleImage("foodBag", Vector2f(20,20), foodBag.rectangle.getPosition()));
+                movement = !movement;
+            }
+            window.clear(Color(0,1,0));
+            Vector2i mousePos = Mouse::getPosition(window);
+            Vector2f foodBowlPos = foodBowl.rectangle.getPosition();
+            for (int i = 0; i < foodFall.size(); i++) {
+                foodFall[i].rectangle.setPosition(foodFall[i].rectangle.getPosition() + Vector2f(0, speed + 1));
+                Vector2f curPosition = foodFall[i].rectangle.getPosition();
+                if (curPosition.y >= 170 && curPosition.y <= 190 && curPosition.x >= foodBowlPos.x - 50 && curPosition.x <= foodBowlPos.x + 50) {
+                    foodTotal += 5;
+                    foodFall.erase(foodFall.begin() + i);
+                    i--;
+                } else
+                    window.draw(foodFall[i].rectangle);
+            }
+            if (movement) {
+                foodBag.rectangle.setPosition(foodBag.rectangle.getPosition() + Vector2f(foodBag.rectangle.getPosition().x <= 250 ? speed + 1 : 0, 0));
+            } else {
+                foodBag.rectangle.setPosition(foodBag.rectangle.getPosition() - Vector2f(foodBag.rectangle.getPosition().x >= 50 ? speed + 1 : 0, 0));
+            }
+            if (mousePos.x > foodBowlPos.x && foodBowlPos.x < 250) {
+                foodBowl.rectangle.setPosition(Vector2f(foodBowlPos.x + speed, foodBowlPos.y));
+            } else if (mousePos.x < foodBowlPos.x && foodBowlPos.x > 50) {
+                foodBowl.rectangle.setPosition(Vector2f(foodBowlPos.x - speed, foodBowlPos.y));
+            }
+            timeText.setString(to_string(start - totals.time + 14));
+            window.draw(foodBag.rectangle);
+            window.draw(foodBowl.rectangle);
+            window.draw(timeText);
+            window.display();
+            
+            while (const optional event = window.pollEvent()) {
+                if (event->is<Event::Closed>()) {
+                    utilitiesManager::close(window);
+                }
+            }
+        }
+    }
+    return foodTotal;
+}
+
+void windowManager::vetVisit(RenderWindow& window) {
+    RectangleImage catSick = creationManager::defineRectangleImage("catSick", Vector2f(200,200), Vector2f(150, 140));
+    RectangleImage medkit = creationManager::defineRectangleImage("medKit", Vector2f(60,60), Vector2f(40, 160));
+    RectangleImage syringe = creationManager::defineRectangleImage("syringe", Vector2f(20,40), Vector2f(40,100));
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Get the Syring\nand Stab Away");
+    utilitiesManager::textRecenter(instructions, "middle");
+    syringe.rectangle.rotate(degrees(-20));
+    bool clickOne = false, clickTwo = false;
+    while (window.isOpen()) {
+        window.clear(Color(0,1,0));
+        if (clickOne && !clickTwo) {
+            if (syringe.rectangle.getPosition().y <= 100)
+                syringe.rectangle.setPosition(syringe.rectangle.getPosition() + Vector2f(0,1));
+        }
+
+        if (clickTwo && catSick.rectangle.getGlobalBounds().contains(syringe.rectangle.getPosition() - Vector2f(40,-10))) {
+            creationManager::defineTexture(catSick.texture, "catNormal");
+            window.draw(instructions);
+            window.draw(medkit.rectangle);
+            window.draw(catSick.rectangle);
+            window.draw(syringe.rectangle);
+            window.display();
+            sleep(seconds(1));
+            return;
+        } else if (clickTwo) {
+            syringe.rectangle.setPosition(Vector2f(Mouse::getPosition(window)));
+        }
+        if (clickOne)
+            window.draw(syringe.rectangle);
+        window.draw(instructions);
+        window.draw(medkit.rectangle);
+        window.draw(catSick.rectangle);
+        window.display();
+
+         while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                utilitiesManager::close(window);
+            }
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                    if (medkit.rectangle.getGlobalBounds().contains(mousePos))
+                        clickOne = true;
+                    else if (syringe.rectangle.getGlobalBounds().contains(mousePos) && clickOne) {
+                        clickTwo = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void windowManager::taskMenu(RenderWindow& window) {
     RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
     RectangleImage arrowForward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
     RectangleImage arrowBackward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
-    Angle flip = degrees(180);
-    arrowBackward.rectangle.rotate(flip);
+    arrowBackward.rectangle.rotate(degrees(180));
 
     int pageNum = 0;
     vector<listItem> taskList;
@@ -239,7 +358,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                         listItem& item = taskList[taskOrder[i]];
                         if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
                             if (item.id == 0) {
-                                stats.hunger += 70;
+                                stats.hunger += foodMini(window);
                                 stats.record[0] = '0';
                                 totals.foodEaten++;
                                 taskOrder.erase(taskOrder.begin() + i);
@@ -248,6 +367,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                                 taskOrder.erase(taskOrder.begin() + i);
                             } else if (item.id == 3) {
                                 stats.mood = "normal";
+                                vetVisit(window);
                                 stats.record[1] = '0';
                                 taskOrder.erase(taskOrder.begin() + i);
                             } else if (item.id == 5) {

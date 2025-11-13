@@ -6,4 +6,6 @@ public:
     static void shopMenu(RenderWindow& window);
     static void statDisplay(RenderWindow& window);
     static void taskMenu(RenderWindow& window);
+    static int foodMini(RenderWindow& window);
+    static void vetVisit(RenderWindow& window);
 };

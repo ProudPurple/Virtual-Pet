@@ -52,3 +52,12 @@ struct listItem {
 };
 
 extern listItem item;
+
+struct Animation {
+    int start;
+    int time;
+
+    Animation();
+};
+
+extern Animation animation;

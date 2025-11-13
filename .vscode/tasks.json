@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Virtual Pet",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "cl /std:c++17 /EHsc /I bin /c src/main.cpp /Fo:build/main.obj && cl /std:c++17 /EHsc /I bin /c src/dataTypes.cpp /Fo:build/dataTypes.obj && cl /std:c++17 /EHsc /I bin /c src/globals.cpp /Fo:build/globals.obj && cl /std:c++17 /EHsc /I bin /c src/creationManager.cpp /Fo:build/creationManager.obj && cl /std:c++17 /EHsc /I bin /c src/windowManager.cpp /Fo:build/windowManager.obj && cl /std:c++17 /EHsc /I bin /c src/utilityManager.cpp /Fo:build/utilityManager.obj && cl build/main.obj build/dataTypes.obj build/globals.obj build/creationManager.obj build/windowManager.obj build/utilityManager.obj bin/resources.res /link /LIBPATH:bin/SFML/lib sfml-graphics.lib sfml-window.lib sfml-system.lib User32.lib /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup /OUT:Virtual-Pet.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$msCompile"]
+    }
+  ]
+}
