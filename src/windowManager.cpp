@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include "creationManager.hpp"
 #include "utilityManager.hpp"
 #include "windowManager.hpp"
@@ -49,7 +50,7 @@ void windowManager::shopMenu(RenderWindow& window) {
     shopItems.push_back(creationManager::defineListItem("foodBag", "Food", "FEED", 5, 0));
     shopItems.push_back(creationManager::defineListItem("medKit", "Healing", "Lets you help\na sick pet", 15, 1));
     shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
-    shopItems.push_back(creationManager::defineListItem("catMad", "GRRRR", "GRRRRR", 5, 3));
+    shopItems.push_back(creationManager::defineListItem("frisbee", "Frisbee", "Play with your pet", 5, 3));
     shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 10, 4));
     shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 5));
     for (auto& item : shopItems) {
@@ -77,7 +78,7 @@ void windowManager::shopMenu(RenderWindow& window) {
             window.draw(shopItems[ind].title);
         }
         //USE SECONDARY ARRAY OF ORDER TO REFERENCE WITH EACH THING BEING AN ID ALLOWING FOR BETTER ARRANGEMENT
-        if ((int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+        if ((int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size()/3 != pageNum + 1)
             window.draw(arrowForward.rectangle);
         if ((int)pageNum > 0)
             window.draw(arrowBackward.rectangle);
@@ -105,7 +106,7 @@ void windowManager::shopMenu(RenderWindow& window) {
                     }
                     if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
                         pageNum--;
-                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size() != 3)
+                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && itemOrder.size()/3 != pageNum + 1)
                         pageNum++;
                     else if (close.rectangle.getGlobalBounds().contains(mousePos))
                         return;
@@ -282,6 +283,86 @@ void windowManager::vetVisit(RenderWindow& window) {
     }
 }
 
+int windowManager::playFrisbee(RenderWindow& window) {
+    RectangleImage frisbee = creationManager::defineRectangleImage("frisbee", Vector2f(60,60), Vector2f(150, 200));
+    RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(100,100), Vector2f(150, 60));
+    RectangleShape startPos = creationManager::defineRectangle(5,5,150,200);
+    RectangleImage nice = creationManager::defineRectangleImage("exclamationPoint", Vector2f(50, 100), Vector2f(150, 100));
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Throw to your pet\nwith space");
+    Text duration = creationManager::defineText(15, 0, 0, DEFAULT_GREEN, "10");
+    utilitiesManager::textRecenter(instructions, "middle");
+    Vector2f throwPos, catPos = Vector2f(150, 60);
+    int score = 0, pastTime = totals.tick, startTime = totals.time, grabTime;
+    bool active = false, canThrow = true;
+
+    while (window.isOpen()) {
+        if (startTime - totals.time + 10 <= 0)
+            break;
+        window.clear(Color(0,1,0));
+
+        Vector2f catDif = cat.rectangle.getPosition() - Vector2f(catPos.x, catPos.y);
+
+        if (frisbee.rectangle.getGlobalBounds().contains(cat.rectangle.getPosition()) && active) {
+            score += 3;
+            active = false;
+            catPos = Vector2f(150,200);
+            grabTime = totals.tick;
+            nice.rectangle.setPosition(frisbee.rectangle.getPosition());
+        }
+        if (pastTime + 2 <= totals.tick) {
+            catPos = Vector2f((rand() % 150) + 50, (rand() % 75) + 50);
+            pastTime = totals.tick;
+        }
+
+        if (active) {
+            Vector2f dif = frisbee.rectangle.getPosition() - Vector2f(throwPos.x, throwPos.y);
+            frisbee.rectangle.setPosition(frisbee.rectangle.getPosition() - Vector2f((float) min(dif.x / 5, 5), min(dif.y / 5, 5)));
+            if (frisbee.rectangle.getGlobalBounds().contains(throwPos))
+                active = false;
+        } else if (!canThrow) {
+            if (frisbee.rectangle.getGlobalBounds().contains(cat.rectangle.getPosition())) {
+                frisbee.rectangle.setPosition(frisbee.rectangle.getPosition() - Vector2f(min((frisbee.rectangle.getPosition().x - 150) / 5, 5), min((frisbee.rectangle.getPosition().y - 200) / 5, 5)));
+                cat.rectangle.setPosition(frisbee.rectangle.getPosition());
+                if (startPos.getGlobalBounds().contains(frisbee.rectangle.getPosition())) {
+                    canThrow = true;
+                    catPos = Vector2f((rand() % 150) + 50, (rand() % 75) + 50);
+                    pastTime = totals.tick;
+                }
+            } else {
+                catPos = frisbee.rectangle.getPosition();
+            }
+        }
+
+        
+
+
+        duration.setString(to_string(startTime - totals.time + 10));
+        window.draw(duration);
+        window.draw(frisbee.rectangle);
+        window.draw(cat.rectangle);
+        window.draw(instructions);
+        if (grabTime >= totals.tick) {
+            window.draw(nice.rectangle);
+            window.display();
+            sleep(chrono::milliseconds(200));
+        } else if (catPos != cat.rectangle.getPosition())
+            cat.rectangle.setPosition(cat.rectangle.getPosition() - Vector2f(min(catDif.x / 5, 5), min(catDif.y / 5, 5)));
+        window.display();
+
+        while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                utilitiesManager::close(window);
+            }
+            
+            if (Keyboard::isKeyPressed(Keyboard::Key::Space) && canThrow) {
+                active = true, canThrow = false;
+                throwPos = Vector2f(Mouse::getPosition(window));
+            }
+        }
+    }
+    return score;
+}
+
 void windowManager::taskMenu(RenderWindow& window) {
     RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
@@ -295,7 +376,7 @@ void windowManager::taskMenu(RenderWindow& window) {
     taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
     taskList.push_back(creationManager::defineListItem("hand", "what?", "where do you\nkeep finding this", -1, 2));
     taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
-    taskList.push_back(creationManager::defineListItem("catRich", "MOOLAH", "Make That\nMONEY", -1, 4));
+    taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 4));
     taskList.push_back(creationManager::defineListItem("statsImage", "stats", "see your stats", -1, taskList.size()));
     vector<int> taskOrder;
     
@@ -307,7 +388,7 @@ void windowManager::taskMenu(RenderWindow& window) {
         taskOrder.push_back(2);
     if (stats.mood == "sick" && stats.record[1] - '0')
         taskOrder.push_back(3);
-    if (stats.record[3] - '0')
+    if (stats.record[3] - '0' && frisbeeDelay - totals.time <= 0)
         taskOrder.push_back(4);
     taskOrder.push_back(taskList.size()-1);
     
@@ -321,13 +402,14 @@ void windowManager::taskMenu(RenderWindow& window) {
                 taskOrder.push_back(2);
             if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
                 taskOrder.push_back(3);
-            if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
+            if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end() && frisbeeDelay - totals.time <= 0)
                 taskOrder.push_back(4);
         }
         window.clear(Color(0,1,0));
+        //MessageBoxA(NULL, to_string(frisbeeDelay - totals.time).c_str(), "debug", MB_OK);
         window.draw(background.rectangle);
         window.draw(close.rectangle);
-        if ((int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size() > 3)
+        if ((int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size()/3 != pageNum + 1)
             window.draw(arrowForward.rectangle);
         if ((int)pageNum > 0)
             window.draw(arrowBackward.rectangle);
@@ -370,6 +452,10 @@ void windowManager::taskMenu(RenderWindow& window) {
                                 vetVisit(window);
                                 stats.record[1] = '0';
                                 taskOrder.erase(taskOrder.begin() + i);
+                            } else if (item.id == 4) {
+                                stats.happiness += playFrisbee(window);
+                                taskOrder.erase(taskOrder.begin() + i);
+                                frisbeeDelay = 60 + totals.time;
                             } else if (item.id == 5) {
                                 statDisplay(window);
                             }
@@ -377,7 +463,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                     }
                     if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)
                         pageNum--;
-                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size() > 3)
+                    else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= taskOrder.size()/3 && taskOrder.size()/3 != pageNum + 1)
                         pageNum++;
                     else if (close.rectangle.getGlobalBounds().contains(mousePos))
                         return;

@@ -8,4 +8,5 @@ public:
     static void taskMenu(RenderWindow& window);
     static int foodMini(RenderWindow& window);
     static void vetVisit(RenderWindow& window);
+    static int playFrisbee(RenderWindow& window);
 };

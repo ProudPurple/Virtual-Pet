@@ -75,21 +75,24 @@ int main() {
  
         if (totals.tick % 10)
             creations.mainSpriteControl(spriteBase.texture);
-                    //MessageBox(NULL, stats.mood.c_str(), "Debug", MB_OK);
+
         window.draw(spriteBase.rectangle);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
         }
-        if (petting.start - totals.tick + petting.time >= 0) {
-            int cur = petting.start - totals.tick + petting.time;
-            //MessageBoxA(NULL, cur / 4 >= 15 || (cur / 4 < 10 && cur / 4 >= 5) ? "1" : "0", "D", MB_OK);
-            Angle rot = hand.rectangle.getRotation();
-            hand.rectangle.rotate(degrees(cur > 6 || cur < 3 ? 2 : -2));
+        if (petting.time >= 0) {
+            petting.time = petting.start - totals.tick + petting.time;
+            if (petting.time >= 24)
+                hand.rectangle.rotate(degrees(2));
+            else if (petting.time >= 9)
+                hand.rectangle.rotate(degrees(-2));
+            else
+                hand.rectangle.rotate(degrees(2));
             window.draw(hand.rectangle);
-            if (cur == 0) {
+            if (petting.time <= 0) {
                 hand.rectangle.setRotation(degrees(0));
                 petting.start = 0;
-                petting.time = 0;
+                petting.time = -1;
             }
         }
         window.draw(barBase.rectangle);
@@ -117,7 +120,7 @@ int main() {
                         windows.taskMenu(window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos) && !petting.start && stats.record[2] - '0') {
                         stats.happiness++;
-                        petting.start = totals.tick, petting.time = 8;
+                        petting.start = totals.tick, petting.time = 27;
                     }
                 }
             }

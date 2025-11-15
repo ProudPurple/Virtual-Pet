@@ -9,7 +9,7 @@ listItem::listItem()
 
 Animation::Animation()
     : start(0),
-    time(0)
+    time(-1)
 {}
 
 Totals::Totals()
