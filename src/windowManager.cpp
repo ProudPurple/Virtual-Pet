@@ -51,7 +51,7 @@ void windowManager::shopMenu(RenderWindow& window) {
     shopItems.push_back(creationManager::defineListItem("medKit", "Healing", "Lets you help\na sick pet", 15, 1));
     shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
     shopItems.push_back(creationManager::defineListItem("frisbee", "Frisbee", "Play with your pet", 5, 3));
-    shopItems.push_back(creationManager::defineListItem("close", "what is this", "kys", 10, 4));
+    shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 10, 4));
     shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 5));
     for (auto& item : shopItems) {
         if (stats.record[item.id] == '0') {
@@ -333,9 +333,6 @@ int windowManager::playFrisbee(RenderWindow& window) {
             }
         }
 
-        
-
-
         duration.setString(to_string(startTime - totals.time + 10));
         window.draw(duration);
         window.draw(frisbee.rectangle);
@@ -363,6 +360,91 @@ int windowManager::playFrisbee(RenderWindow& window) {
     return score;
 }
 
+void windowManager::cleanPet(RenderWindow& window) {
+    vector<bool> triggers(4,false);
+    vector<pair<int,int>> bubbleCoords = {{102,68},{100,100},{103,112}, {133,72},{130,97},{127,128}, {190,50},{175,93},{210,143}, {100,170},{150,172},{173, 163}};
+    vector<RectangleImage> bubbles;
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Spray");
+    utilitiesManager::textRecenter(instructions, "middle");
+    RectangleImage cat = creationManager::defineRectangleImage("catDirty", Vector2f(200,200), Vector2f(150,125));
+    RectangleImage spray = creationManager::defineRectangleImage("spray", Vector2f(20,40),Vector2f(50,130));
+    RectangleImage soap = creationManager::defineRectangleImage("soap", Vector2f(50,40), Vector2f(50, 130));
+    RectangleImage spraySFX = creationManager::defineRectangleImage("spraySFX", Vector2f(20,20),Vector2f(0,0));
+    int sfxOffset = 0, sprayCount = 0;
+    while (window.isOpen()) {
+        Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
+        window.clear(Color(0,1,0));
+        if (triggers[3]) {
+            sleep(chrono::seconds(2));
+            break;
+        }
+        if (triggers[2] == true) {
+            soap.rectangle.setPosition(mouseCoords);
+            for (int i = 0; i < bubbleCoords.size(); i++) {
+                if (soap.rectangle.getGlobalBounds().contains(Vector2f(bubbleCoords[i].first, bubbleCoords[i].second))) {
+                    bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first, bubbleCoords[i].second)));
+                    bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first - 10, bubbleCoords[i].second + 3)));
+                    bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first - 12, bubbleCoords[i].second - 7)));
+                    bubbleCoords.erase(bubbleCoords.begin() + i);
+                    i--;
+                }
+            }
+        } else if (sprayCount >= 5) {
+            instructions.setString("Grab The Soap");
+            utilitiesManager::textRecenter(instructions, "middle");
+            triggers[1] = true;
+        } else if (triggers[0]) {
+            spray.rectangle.setPosition(mouseCoords);
+        }
+        if (bubbleCoords.size() == 0 && bubbles.size() != 0) {
+            triggers[3] = true;
+            instructions.setString("Good Job");
+            utilitiesManager::textRecenter(instructions, "middle");
+            creationManager::defineTexture(cat.texture, "catNormal");
+            for (int i = bubbles.size() - 1; i >= 0; i--) {
+                bubbles.pop_back();
+            }
+        }
+        window.draw(instructions);
+        window.draw(cat.rectangle);
+        if (sfxOffset - totals.tick > 0 && !triggers[1])
+            window.draw(spraySFX.rectangle);
+        for (auto bubble : bubbles)
+            window.draw(bubble.rectangle);
+        if (!triggers[1])
+            window.draw(spray.rectangle);
+        else
+            window.draw(soap.rectangle);
+        window.display();
+
+        while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                utilitiesManager::close(window);
+            }
+
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = Vector2f(mousePressed->position);
+                    if (triggers[1] && soap.rectangle.getGlobalBounds().contains(mousePos)) {
+                        triggers[2] = true;
+                        instructions.setString("SCRUB!");
+                        utilitiesManager::textRecenter(instructions, "middle");
+                    } else if (triggers[0]) {
+                        sfxOffset = totals.tick + 1;
+                        spraySFX.rectangle.setPosition(mousePos - Vector2f(20,10));
+                        if (cat.rectangle.getGlobalBounds().contains(mousePos - Vector2f(20,10)))
+                            sprayCount++;
+                    } else if (spray.rectangle.getGlobalBounds().contains(mousePos)) {
+                        triggers[0] = true;
+                        instructions.setString("SPRAY!");
+                        utilitiesManager::textRecenter(instructions, "middle");
+                    }
+                }
+            }
+        }
+    }
+}
+
 void windowManager::taskMenu(RenderWindow& window) {
     RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
@@ -374,7 +456,7 @@ void windowManager::taskMenu(RenderWindow& window) {
     vector<listItem> taskList;
     taskList.push_back(creationManager::defineListItem("foodBag", "FEED", "feed him", -1, 0));
     taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
-    taskList.push_back(creationManager::defineListItem("hand", "what?", "where do you\nkeep finding this", -1, 2));
+    taskList.push_back(creationManager::defineListItem("soapBottle", "Clean Bro Up", "He Dirty", -1, 2));
     taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
     taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 4));
     taskList.push_back(creationManager::defineListItem("statsImage", "stats", "see your stats", -1, taskList.size()));
@@ -384,7 +466,7 @@ void windowManager::taskMenu(RenderWindow& window) {
         taskOrder.push_back(0);
     if (stats.mood == "sad")
         taskOrder.push_back(1);
-    if (stats.record[2] - '0')
+    if (stats.record[4] - '0' && stats.mood == "dirty")
         taskOrder.push_back(2);
     if (stats.mood == "sick" && stats.record[1] - '0')
         taskOrder.push_back(3);
@@ -398,7 +480,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                 taskOrder.push_back(0);
             if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
                 taskOrder.push_back(1);
-            if (stats.record[2] - '0' && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
+            if (stats.record[4] - '0' && stats.mood == "dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
                 taskOrder.push_back(2);
             if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
                 taskOrder.push_back(3);
@@ -447,6 +529,10 @@ void windowManager::taskMenu(RenderWindow& window) {
                             } else if (item.id == 1) {
                                 stats.happiness += 35;
                                 taskOrder.erase(taskOrder.begin() + i);
+                            } else if (item.id == 2) {
+                                stats.mood = "normal";
+                                cleanPet(window);
+                                taskOrder.erase(taskOrder.begin() + i);
                             } else if (item.id == 3) {
                                 stats.mood = "normal";
                                 vetVisit(window);
@@ -459,6 +545,8 @@ void windowManager::taskMenu(RenderWindow& window) {
                             } else if (item.id == 5) {
                                 statDisplay(window);
                             }
+                            if (rand() % 3 == 0 && item.id != 5 && item.id != 2)
+                                stats.mood = "dirty"; 
                         }
                     }
                     if (arrowBackward.rectangle.getGlobalBounds().contains(mousePos) && pageNum > 0)

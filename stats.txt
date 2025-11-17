@@ -1,2 +1,2 @@
-97 60 58 0000001 127 Anderdingus normal
+97 60 58 0000101 127 Anderdingus dirty
 2 180 270 1834 366 1

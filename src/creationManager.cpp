@@ -57,6 +57,8 @@ Text creationManager::defineText(int charSize, float x, float y, Color color, St
 void creationManager::mainSpriteControl(shared_ptr<Texture>& texture) {
     if (stats.mood == "mad")
         defineTexture(texture, "catMad");
+    else if (stats.mood == "dirty")
+        defineTexture(texture, "catDirty");
     else if (stats.mood == "sick")
         defineTexture(texture, "catSick");
     else if (stats.mood == "sad")

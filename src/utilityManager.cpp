@@ -72,7 +72,7 @@ void utilitiesManager::background() {
     }
 }
 
-void utilitiesManager::barManager  (vector<RectangleShape> &barHelpers) {
+void utilitiesManager::barManager(vector<RectangleShape> &barHelpers) {
     if (stats.hunger <= 0)
         barHelpers[0].setFillColor(DARK_GREEN);
     if (stats.hunger <= 25)
@@ -97,6 +97,8 @@ void utilitiesManager::moodManager() {
         if (stats.mood != "sick")
             totals.timesSick++;
         stats.mood = "sick";
+    } else if (stats.mood == "dirty") {
+        stats.mood = "dirty";
     } else if (stats.hunger <= 0) {
         stats.mood = "mad";
     } else if (stats.happiness <= 0) {
