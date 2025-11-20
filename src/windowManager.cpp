@@ -52,7 +52,8 @@ void windowManager::shopMenu(RenderWindow& window) {
     shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
     shopItems.push_back(creationManager::defineListItem("frisbee", "Frisbee", "Play with your pet", 5, 3));
     shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 10, 4));
-    shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 5));
+    shopItems.push_back(creationManager::defineListItem("catSleepy", "Sleep", "Let your cat rest decreasing\nhunger lost when inactive", 50, 5));
+    shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 6));
     for (auto& item : shopItems) {
         if (stats.record[item.id] == '0') {
             itemOrder.push_back(item.id);

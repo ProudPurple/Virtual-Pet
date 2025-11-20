@@ -26,6 +26,10 @@ int main() {
     if (stats.hash != utilities.hasher(stats.record))
         return 0;
     
+    lastClick = totals.tick;
+    bool sleepy;
+    int hungerBacklog = 0, pastHunger = stats.hunger;
+    
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
 
@@ -71,11 +75,19 @@ int main() {
     backgroundThread = thread(utilities.background);
 
     while (window.isOpen()) {
+        sleepy = stats.record[5] == '1' && totals.tick - lastClick >= 180 || sleepy;
         window.clear(Color(0,1,0));
  
         if (totals.tick % 10)
             creations.mainSpriteControl(spriteBase.texture);
 
+
+        if (sleepy) {
+            creations.defineTexture(spriteBase.texture, "catSleepy");
+            hungerBacklog = (totals.tick - lastClick) / 20;
+            pastHunger = max(pastHunger, stats.hunger);
+            stats.hunger = pastHunger;
+        }
         window.draw(spriteBase.rectangle);
         for (RectangleShape rect : barHelpers) {
             window.draw(rect);
@@ -118,10 +130,17 @@ int main() {
                         windows.shopMenu(window);
                     } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         windows.taskMenu(window);
-                    } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos) && !petting.start && stats.record[2] - '0') {
-                        stats.happiness++;
-                        petting.start = totals.tick, petting.time = 27;
+                    } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
+                        if (sleepy) {
+                            sleepy = false;
+                            stats.hunger -= hungerBacklog;
+                            hungerBacklog = 0;
+                        } else if (!petting.start && stats.record[2] - '0') {
+                            stats.happiness++;
+                            petting.start = totals.tick, petting.time = 27;
+                        }
                     }
+                    lastClick = totals.tick;
                 }
             }
         }
