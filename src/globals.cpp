@@ -10,4 +10,5 @@ Color DARK_GREEN = Color(5, 51, 6);
 thread backgroundThread;
 int frisbeeDelay = 0;
 int lastClick = 0;
+bool sleepy = true;
 atomic<bool> running = true;

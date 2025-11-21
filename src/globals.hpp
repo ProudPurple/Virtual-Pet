@@ -11,4 +11,5 @@ extern Color DARK_GREEN;
 extern thread backgroundThread;
 extern int frisbeeDelay;
 extern int lastClick;
+extern bool sleepy;
 extern atomic<bool> running;

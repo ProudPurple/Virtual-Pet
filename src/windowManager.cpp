@@ -523,7 +523,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                         listItem& item = taskList[taskOrder[i]];
                         if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
                             if (item.id == 0) {
-                                stats.hunger += foodMini(window);
+                                stats.hunger += min(foodMini(window), 100 - stats.hunger);
                                 stats.record[0] = '0';
                                 totals.foodEaten++;
                                 taskOrder.erase(taskOrder.begin() + i);

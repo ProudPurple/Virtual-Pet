@@ -54,7 +54,7 @@ void utilitiesManager::background() {
     while (true && running) {
         totals.tick++;
         
-        if (totals.tick % (stats.mood == "sick" ? 3 : 10) == 0 && stats.hunger >= 0) {
+        if (totals.tick % (stats.mood == "sick" ? 3 : 10) == 0 && stats.hunger >= 0 && !sleepy) {
             stats.hunger--;
         }
         if (totals.tick % 50 == 0) {
@@ -63,33 +63,13 @@ void utilitiesManager::background() {
         }
         if (totals.tick % 5 == 0)
             totals.time++;
-        if (totals.tick % 900 == 0)
+        if (totals.tick % 500 == 0)
             save();
         utilitiesManager::moodManager();
         if (totals.tick >= 100000)
             totals.tick = 1;
         this_thread::sleep_for(chrono::milliseconds(200));
     }
-}
-
-void utilitiesManager::barManager(vector<RectangleShape> &barHelpers) {
-    if (stats.hunger <= 0)
-        barHelpers[0].setFillColor(DARK_GREEN);
-    if (stats.hunger <= 25)
-        barHelpers[1].setFillColor(DARK_GREEN);
-    if (stats.hunger <= 50)
-        barHelpers[2].setFillColor(DARK_GREEN);
-    if (stats.hunger <= 75)
-        barHelpers[3].setFillColor(DARK_GREEN);
-
-    if (stats.hunger > 75)
-        barHelpers[3].setFillColor(DEFAULT_GREEN);
-    if (stats.hunger > 50)
-        barHelpers[2].setFillColor(DEFAULT_GREEN);
-    if (stats.hunger > 25)
-        barHelpers[1].setFillColor(DEFAULT_GREEN);
-    if (stats.hunger > 0)
-        barHelpers[0].setFillColor(DEFAULT_GREEN);
 }
 
 void utilitiesManager::moodManager() {

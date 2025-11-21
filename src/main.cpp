@@ -27,8 +27,7 @@ int main() {
         return 0;
     
     lastClick = totals.tick;
-    bool sleepy;
-    int hungerBacklog = 0, pastHunger = stats.hunger;
+    int hungerBacklog = 0, pastHunger = stats.hunger, hungerDifference = 0;
     
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
@@ -53,12 +52,10 @@ int main() {
     RectangleImage hand = creations.defineRectangleImage("Hand", Vector2f(60,60),Vector2f(150,70));
     Animation petting;
 
-    
-    vector<RectangleShape> barHelpers(4, RectangleShape({30.f, 20.f}));
-    for (int i = 0; i < 4; i++) {
-        barHelpers[i] = creations.defineRectangle(30, 20, 250, 150 + (i * -20));
-        barHelpers[i].setFillColor(stats.hunger > i * 25 ? DEFAULT_GREEN : DARK_GREEN);
-    }
+    RectangleShape hungerBar = creations.defineRectangle(30,75,250,80);
+    hungerBar.setFillColor(LIGHT_GREEN);
+    hungerBar.setOrigin(Vector2f(15,75));
+    hungerBar.rotate(degrees(180));
 
     Text hungerText = creations.defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
     Text moneyText = creations.defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
@@ -81,6 +78,8 @@ int main() {
         if (totals.tick % 10)
             creations.mainSpriteControl(spriteBase.texture);
 
+        hungerDifference = stats.hunger - hungerBar.getSize().y * 4 / 3;
+        hungerBar.setSize(Vector2f(30, hungerBar.getSize().y + (hungerDifference > 0 ? min(1, hungerDifference) : max(-1, hungerDifference))));
 
         if (sleepy) {
             creations.defineTexture(spriteBase.texture, "catSleepy");
@@ -88,10 +87,9 @@ int main() {
             pastHunger = max(pastHunger, stats.hunger);
             stats.hunger = pastHunger;
         }
+
         window.draw(spriteBase.rectangle);
-        for (RectangleShape rect : barHelpers) {
-            window.draw(rect);
-        }
+        
         if (petting.time >= 0) {
             petting.time = petting.start - totals.tick + petting.time;
             if (petting.time >= 24)
@@ -107,14 +105,12 @@ int main() {
                 petting.time = -1;
             }
         }
+
+        window.draw(hungerBar);
         window.draw(barBase.rectangle);
         window.draw(tasksButton.rectangle);
         window.draw(shopButton.rectangle);
         window.draw(nameText);
-
-
-        hungerText.setString(to_string(stats.hunger));
-        moneyText.setString(to_string(stats.money));
 
         window.display();
 
@@ -144,7 +140,6 @@ int main() {
                 }
             }
         }
-        utilities.barManager(barHelpers);
     }
     return 0;
 }

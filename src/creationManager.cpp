@@ -17,9 +17,9 @@ void creationManager::defineTexture(std::shared_ptr<Texture>& texPtr, const stri
     }
 }
 
-RectangleShape creationManager::defineRectangle(float height, float width, float x, float y) {
-    RectangleShape rect({height, width});
-    rect.setOrigin({height/2, width/2});
+RectangleShape creationManager::defineRectangle(float width, float height, float x, float y) {
+    RectangleShape rect({width, height});
+    rect.setOrigin({width/2, height/2});
     rect.setPosition({x, y});
     return rect;
 }
