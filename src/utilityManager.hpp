@@ -11,6 +11,7 @@ public:
     static void barManager  (vector<RectangleShape> &barHelpers);
     static void moodManager();
     static void rollforward(listItem& item);
+    static void utilitiesManager::taskListCheck(vector<listItem>& taskItems, vector<int>& taskOrder);
     static void rollbackward(listItem& item);
     static void roll(vector<listItem>& base, int start, string command);
     static void textRecenter(Text& text, string command);

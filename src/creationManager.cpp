@@ -47,6 +47,8 @@ listItem creationManager::defineListItem(string filepath = "catRich", string tit
 Text creationManager::defineText(int charSize, float x, float y, Color color, String s) {
     static Font FONT("RasterForgeRegular-JpBgm.ttf");
     Text txt(FONT);
+    txt.setOutlineThickness(2);
+    txt.setOutlineColor(DARK_GREEN);
     txt.setString(s);
     txt.setCharacterSize(charSize);
     txt.setPosition({x,y});

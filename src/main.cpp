@@ -72,7 +72,7 @@ int main() {
     backgroundThread = thread(utilities.background);
 
     while (window.isOpen()) {
-        sleepy = stats.record[5] == '1' && totals.tick - lastClick >= 180 || sleepy;
+        sleepy = stats.record[5] - '0' && totals.tick - lastClick >= 180 || sleepy;
         window.clear(Color(0,1,0));
  
         if (totals.tick % 10)

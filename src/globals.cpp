@@ -13,5 +13,5 @@ int carWashDelay = 0;
 int trashDelay = 0;
 int dishDelay = 0;
 int lastClick = 0;
-bool sleepy = true;
+bool sleepy = false;
 atomic<bool> running = true;
