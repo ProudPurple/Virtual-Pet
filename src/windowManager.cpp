@@ -361,6 +361,122 @@ int windowManager::playFrisbee(RenderWindow& window) {
     return score;
 }
 
+void windowManager::takeOutTrash(RenderWindow& window) {
+    vector<bool> triggers(4, false);
+    vector<RectangleImage> trash(8, creationManager::defineRectangleImage("trash", Vector2f(30,30), Vector2f(150, 120)));
+    trash[0].rectangle.setPosition(Vector2f(20,220));
+    trash[1].rectangle.setPosition(Vector2f(23,220));
+    trash[2].rectangle.setPosition(Vector2f(77,220));
+    trash[3].rectangle.setPosition(Vector2f(140, 120));
+    trash[4].rectangle.setPosition(Vector2f(123, 120));
+    trash[5].rectangle.setPosition(Vector2f(240, 220));
+    trash[6].rectangle.setPosition(Vector2f(172, 220));
+    int trashCount = 0, curTrash = -1;
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Trash and Put it In the Bin");
+    utilitiesManager::textRecenter(instructions, "middle");
+    RectangleImage trashBin = creationManager::defineRectangleImage("trashBin", Vector2f(40,50), Vector2f(260,210));
+    RectangleImage dumpster = creationManager::defineRectangleImage("openDumpster", Vector2f(100, 140), Vector2f(150, 145));
+    RectangleImage lid = creationManager::defineRectangleImage("dumpsterLid", Vector2f(100, 50), Vector2f(150, 75));
+    RectangleImage bag = creationManager::defineRectangleImage("trashBag", Vector2f(50,50), Vector2f(0,0));
+    RectangleShape trashHitbox = creationManager::defineRectangle(20,10, 260, 180);
+    RectangleImage table = creationManager::defineRectangleImage("table", Vector2f(100,100), Vector2f(150,180));
+    while (window.isOpen()) {
+        Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
+        window.clear(Color(0,1,0));
+
+        if (trashCount >= 8 && !triggers[0]) {
+            triggers[0] = true;
+            instructions.setString("Click The Bin");
+            utilitiesManager::textRecenter(instructions, "middle");
+        }
+
+        window.draw(instructions);
+        if (!triggers[1]) {
+            window.draw(table.rectangle);
+            window.draw(trashBin.rectangle);
+            for (auto piece : trash)
+                window.draw(piece.rectangle);
+        } else {
+            if (!triggers[3])
+                window.draw(lid.rectangle);
+            window.draw(dumpster.rectangle);
+            if (!triggers[2]) {
+                bag.rectangle.setPosition(mouseCoords);
+                window.draw(bag.rectangle);
+            }
+        }
+        
+        window.display();
+
+        if (triggers[3]) {
+            sleep(chrono::seconds(1));
+            break;
+        }
+
+        if (!triggers[0]) {
+            for (int i = 0; i < trash.size(); i++) {
+                Vector2f pos = trash[i].rectangle.getPosition();       
+                if (trashHitbox.getGlobalBounds().contains(pos) && curTrash != i) {
+                    trashCount++;
+                    trash.erase(trash.begin() + i);
+                    i--;
+                    continue;
+                }
+                if (curTrash != i) {
+                    trash[i].rectangle.setPosition(pos + (((pos.x < 100 || pos.x > 200) && pos.y < 220) || (pos.y < 120) ? Vector2f(0,3) : Vector2f(0,0)));
+                } else {
+                    trash[i].rectangle.setPosition(mouseCoords);
+                }
+            }
+        }
+
+        while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                utilitiesManager::close(window);
+            }
+
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = Vector2f(mousePressed->position);
+                    if (!triggers[0]) {
+                        if (curTrash != -1) {
+                            //MessageBoxA(NULL, to_string(curTrash).c_str(), "DEBUG", MB_OK);
+                            if (!table.rectangle.getGlobalBounds().contains(mousePos))
+                                curTrash = -1;
+                        } else {
+                            for (int i = 0; i < trash.size(); i++) {
+                                if (trash[i].rectangle.getGlobalBounds().contains(mousePos)) {
+                                    curTrash = i;
+                                    break; 
+                                }
+                            }
+                        }
+                    } else if (!triggers[1]) {
+                        if (trashBin.rectangle.getGlobalBounds().contains(mousePos)) {
+                            triggers[1] = true; 
+                            instructions.setString("Put in the Dumpster");
+                            utilitiesManager::textRecenter(instructions, "middle");
+                        }
+                    } else if (!triggers[2]) {
+                        if (dumpster.rectangle.getGlobalBounds().contains(mousePos)) {
+                            instructions.setString("Close The Lid");
+                            utilitiesManager::textRecenter(instructions, "middle");
+                            triggers[2] = true;
+                        }
+                    } else {
+                        if (lid.rectangle.getGlobalBounds().contains(mousePos)) {
+                            triggers[3] = true;
+                            instructions.setString("Good Job!");
+                            creationManager::defineTexture(dumpster.texture, "closeDumpster");
+                            utilitiesManager::textRecenter(instructions, "middle");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void windowManager::cleanPet(RenderWindow& window) {
     vector<bool> triggers(4,false);
     vector<pair<int,int>> bubbleCoords = {{102,68},{100,100},{103,112}, {133,72},{130,97},{127,128}, {190,50},{175,93},{210,143}, {100,170},{150,172},{173, 163}};
@@ -459,7 +575,8 @@ void windowManager::taskMenu(RenderWindow& window) {
     taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
     taskList.push_back(creationManager::defineListItem("soapBottle", "Clean Bro Up", "He Dirty", -1, 2));
     taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
-    taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 4));
+    taskList.push_back(creationManager::defineListItem("trash", "Take Out Trash", "Clean Up for some Moolah", -1, 4));
+    taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 5));
     taskList.push_back(creationManager::defineListItem("statsImage", "stats", "see your stats", -1, taskList.size()));
     vector<int> taskOrder;
     
@@ -471,8 +588,10 @@ void windowManager::taskMenu(RenderWindow& window) {
         taskOrder.push_back(2);
     if (stats.mood == "sick" && stats.record[1] - '0')
         taskOrder.push_back(3);
-    if (stats.record[3] - '0' && frisbeeDelay - totals.time <= 0)
+    if (trashDelay - totals.time < 0)
         taskOrder.push_back(4);
+    if (stats.record[3] - '0' && frisbeeDelay - totals.time <= 0)
+        taskOrder.push_back(5);
     taskOrder.push_back(taskList.size()-1);
     
     while (window.isOpen()) {
@@ -485,8 +604,10 @@ void windowManager::taskMenu(RenderWindow& window) {
                 taskOrder.push_back(2);
             if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
                 taskOrder.push_back(3);
-            if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end() && frisbeeDelay - totals.time <= 0)
+            if (trashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
                 taskOrder.push_back(4);
+            if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 5) == taskOrder.end() && frisbeeDelay - totals.time <= 0)
+                taskOrder.push_back(5);
         }
         window.clear(Color(0,1,0));
         //MessageBoxA(NULL, to_string(frisbeeDelay - totals.time).c_str(), "debug", MB_OK);
@@ -523,7 +644,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                         listItem& item = taskList[taskOrder[i]];
                         if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
                             if (item.id == 0) {
-                                stats.hunger += min(foodMini(window), 100 - stats.hunger);
+                                stats.hunger += foodMini(window);
                                 stats.record[0] = '0';
                                 totals.foodEaten++;
                                 taskOrder.erase(taskOrder.begin() + i);
@@ -540,10 +661,15 @@ void windowManager::taskMenu(RenderWindow& window) {
                                 stats.record[1] = '0';
                                 taskOrder.erase(taskOrder.begin() + i);
                             } else if (item.id == 4) {
+                                takeOutTrash(window);
+                                trashDelay = totals.time + 60;
+                                taskOrder.erase(taskOrder.begin() + i);
+                                stats.money += 20;
+                            } else if (item.id == 5) {
                                 stats.happiness += playFrisbee(window);
                                 taskOrder.erase(taskOrder.begin() + i);
                                 frisbeeDelay = 60 + totals.time;
-                            } else if (item.id == 5) {
+                            } else if (item.id == taskOrder.size() - 1) {
                                 statDisplay(window);
                             }
                             if (rand() % 3 == 0 && item.id != 5 && item.id != 2)

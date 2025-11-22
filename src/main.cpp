@@ -83,9 +83,14 @@ int main() {
 
         if (sleepy) {
             creations.defineTexture(spriteBase.texture, "catSleepy");
+            creations.defineTexture(tasksButton.texture, "sleepyButton");
+            creations.defineTexture(shopButton.texture, "sleepyButton");
             hungerBacklog = (totals.tick - lastClick) / 20;
             pastHunger = max(pastHunger, stats.hunger);
             stats.hunger = pastHunger;
+        } else {
+            creations.defineTexture(tasksButton.texture, "tasksButton");
+            creations.defineTexture(shopButton.texture, "shopButton");
         }
 
         window.draw(spriteBase.rectangle);
@@ -123,9 +128,11 @@ int main() {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        windows.shopMenu(window);
+                        if (!sleepy)
+                            windows.shopMenu(window);
                     } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        windows.taskMenu(window);
+                        if (!sleepy)
+                            windows.taskMenu(window);
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (sleepy) {
                             sleepy = false;

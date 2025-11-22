@@ -56,7 +56,9 @@ void utilitiesManager::background() {
         
         if (totals.tick % (stats.mood == "sick" ? 3 : 10) == 0 && stats.hunger >= 0 && !sleepy) {
             stats.hunger--;
-        }
+        } else if (stats.hunger > 100)
+            stats.hunger = 100;
+            
         if (totals.tick % 50 == 0) {
             stats.money += 5;
             totals.moneyGained += 5;
