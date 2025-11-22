@@ -110,31 +110,24 @@ void utilitiesManager::rollforward(listItem& item) {
 void utilitiesManager::taskListCheck(vector<listItem>& taskItems, vector<int>& taskOrder) {
     if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end()) {
         taskOrder.push_back(0);
-        rollbackward(taskItems[0]);
     }
     if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end()) {
         taskOrder.push_back(1);
-        rollbackward(taskItems[1]);
     }
     if (stats.record[5] - '0' && stats.mood == "dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end()) {
         taskOrder.push_back(2);
-        rollbackward(taskItems[2]);
     }
     if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end()) {
         taskOrder.push_back(3);
-        rollbackward(taskItems[3]);
     }
     if (trashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end()) {
         taskOrder.push_back(4);
-        rollbackward(taskItems[4]);
     }
     if (stats.record[4] - '0' && dishDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 5) == taskOrder.end()) {
         taskOrder.push_back(5);
-        rollbackward(taskItems[5]);
     }
     if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 6) == taskOrder.end() && frisbeeDelay - totals.time <= 0) {
         taskOrder.push_back(6);
-        rollbackward(taskItems[6]);
     }
 }
 

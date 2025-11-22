@@ -690,12 +690,8 @@ void windowManager::taskMenu(RenderWindow& window) {
     
     while (window.isOpen()) {
         if (totals.tick % 10 == 0) {
-            int temp = taskOrder.size();
             utilitiesManager::taskListCheck(taskList, taskOrder);
-            for (int i = temp; i < taskOrder.size(); i++) {
-                utilitiesManager::rollbackward(taskList[taskOrder[i]]);
-                taskList[taskOrder[i]].pos++;
-            }
+            sort(taskOrder.begin(), taskOrder.end());
         }
         window.clear(Color(0,1,0));
         window.draw(background.rectangle);
@@ -712,6 +708,7 @@ void windowManager::taskMenu(RenderWindow& window) {
             while (item.pos > i) {
                 utilitiesManager::rollbackward(item);
             }
+//MessageBoxA(NULL, to_string(item.pos).c_str(), "d", MB_OK);
             window.draw(item.image.rectangle);
             window.draw(item.buy.rectangle);
             window.draw(item.description);
@@ -726,7 +723,6 @@ void windowManager::taskMenu(RenderWindow& window) {
             }
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
-                    MessageBoxA(NULL, to_string(taskOrder.size()).c_str(), "de", MB_OK);
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
                         listItem& item = taskList[taskOrder[i]];
