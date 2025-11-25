@@ -563,6 +563,138 @@ void windowManager::cleanPet(RenderWindow& window) {
     }
 }
 
+void windowManager::carWash(RenderWindow& window) {
+    vector<bool> triggers(3, false);
+    int carDir = 0, sprayDelay = 0, shineCount = 0, bubbleCount = 0;
+    vector<int> sprayCount(4,0);
+    vector<pair<int,int>> bubbleCoords = {{102,88},{100,122},{103,183}, {183,86},{180,132},{187,189}, {150,74},{150,105},{153, 182}};
+    vector<pair<RectangleImage, vector<int>>> bubbles;
+    for (auto coords : bubbleCoords) 
+        bubbles.push_back({creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(coords.first, coords.second)), {0,0,0,0}});
+    RectangleImage carEven = creationManager::defineRectangleImage("carFront", Vector2f(100,150), Vector2f(150,150));
+    RectangleImage carOdd = creationManager::defineRectangleImage("carSide", Vector2f(200,150), Vector2f(150,150));
+    RectangleImage spray = creationManager::defineRectangleImage("spray", Vector2f(10,30), Vector2f(0,0));
+    RectangleImage soap = creationManager::defineRectangleImage("soap", Vector2f(30,20), Vector2f(0,0));
+    RectangleImage cloth = creationManager::defineRectangleImage("cloth", Vector2f(30,30), Vector2f(0,0));
+    RectangleImage spraySFX = creationManager::defineRectangleImage("spraySFX", Vector2f(15,15), Vector2f(0,0));
+    RectangleImage turnRight = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(250, 150));
+    RectangleImage turnLeft = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(50,150));
+    turnLeft.rectangle.rotate(degrees(180));
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Spray Each Side of The Car");
+    utilitiesManager::textRecenter(instructions, "middle");
+    RectangleShape buttonHitbox = creationManager::defineRectangle(20,20, 210, 60);
+    buttonHitbox.setFillColor(Color(67,67,67));
+
+    while (window.isOpen()) {
+        bool valid = true;
+        for (int i : sprayCount)
+            valid = (i >= 2) && valid;
+        triggers[0] = valid;
+
+        if (bubbleCount >= bubbleCoords.size() * 3 && !triggers[1])
+            triggers[1] = true;
+        
+        if (shineCount >= bubbleCount && triggers[1]) {
+            soap.rectangle.setPosition(Vector2f(0,0));
+            triggers[2] = true;
+        }
+
+        if (triggers[0] && !triggers[1]) {
+            instructions.setString("Scrub Each Side of The Car");
+            utilitiesManager::textRecenter(instructions, "middle");
+        } else if (triggers[1] && !triggers[2]) {
+            instructions.setString("Wash Off Each Side of The Car");
+            utilitiesManager::textRecenter(instructions, "middle");
+        } else if (triggers[2]) {
+            instructions.setString("Good Job");
+            utilitiesManager::textRecenter(instructions, "middle");
+        }
+
+        Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
+
+        window.clear(Color(0,1,0));
+        if (carDir % 2 == 0)
+            window.draw(carEven.rectangle);
+        else
+            window.draw(carOdd.rectangle);
+        for (auto bubble : bubbles) {
+            if (bubble.second[carDir] == 1)
+                creationManager::defineTexture(bubble.first.texture, "bubble");
+            else if (bubble.second[carDir] == 2)
+                creationManager::defineTexture(bubble.first.texture, "shine");
+            if (bubble.second[carDir] >= 1)
+                window.draw(bubble.first.rectangle);
+        }
+        window.draw(turnRight.rectangle);
+        window.draw(turnLeft.rectangle);
+        if (sprayDelay - totals.tick > 0)
+            window.draw(spraySFX.rectangle);
+
+         if (triggers[1]) {
+            cloth.rectangle.setPosition(mouseCoords);
+            window.draw(cloth.rectangle);
+        } else if (triggers[0]) {
+            soap.rectangle.setPosition(mouseCoords);
+            window.draw(soap.rectangle);
+        } else {
+            spray.rectangle.setPosition(mouseCoords);
+            window.draw(spray.rectangle);
+        }
+        window.draw(instructions);
+
+        window.display();
+
+        if (triggers[2]) {
+            sleep(chrono::seconds(2));
+            break;
+        }
+
+        for (int i = 0; i < bubbleCoords.size(); i++) {
+            if (soap.rectangle.getGlobalBounds().contains(Vector2f(bubbleCoords[i].first, bubbleCoords[i].second))) {
+                if (bubbles[i].second[carDir] == 0) {
+                    bubbleCount++;
+                    bubbles[i].second[carDir] = 1;
+                }
+            }
+            if (cloth.rectangle.getGlobalBounds().contains(bubbles[i].first.rectangle.getPosition())) {
+                if (bubbles[i].second[carDir] == 1) {
+                    shineCount++;
+                    bubbles[i].second[carDir] = 2;
+                }
+            }
+        }
+
+        while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                utilitiesManager::close(window);
+            }
+
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = Vector2f(mousePressed->position);
+                    if (turnRight.rectangle.getGlobalBounds().contains(mousePos)) {
+                        carDir = (carDir + 1) % 4;
+                        if (carDir == 0)
+                            creationManager::defineTexture(carEven.texture, "carFront");
+                        else if (carDir == 2)
+                            creationManager::defineTexture(carEven.texture, "carBack");
+                    } else if (turnLeft.rectangle.getGlobalBounds().contains(mousePos)) {
+                        carDir = (carDir - 1 + 4) % 4;
+                        if (carDir == 0)
+                            creationManager::defineTexture(carEven.texture, "carFront");
+                        else if (carDir == 2)
+                            creationManager::defineTexture(carEven.texture, "carBack");
+                    } else if (!triggers[0]) {
+                        sprayCount[carDir]++;
+                        sprayDelay = totals.tick + 1;
+                        spraySFX.rectangle.setPosition(mousePos - Vector2f(15, 15));
+                    }
+                }
+            }
+        }
+    }
+}
+
 void windowManager::dishWash(RenderWindow& window) {
     vector<bool> triggers(4, false);
     vector<int> activePlates;
@@ -681,12 +813,13 @@ void windowManager::taskMenu(RenderWindow& window) {
     taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
     taskList.push_back(creationManager::defineListItem("trash", "Take Out Trash", "Clean Up for some Moolah", -1, 4));
     taskList.push_back(creationManager::defineListItem("plateStack", "Wash Dishes", "Make that money", -1, 5));
-    taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 6));
+    taskList.push_back(creationManager::defineListItem("soapBottle", "Wash The Car", "Make some moolah", -1, 6));
+    taskList.push_back(creationManager::defineListItem("frisbee", "Play", "Play with bro", -1, 7));
     taskList.push_back(creationManager::defineListItem("statsImage", "stats", "see your stats", -1, taskList.size()));
     vector<int> taskOrder;
     
     utilitiesManager::taskListCheck(taskList, taskOrder);
-    taskOrder.push_back(taskList.size()-1);
+    taskOrder.push_back(taskList.size() - 1);
     
     while (window.isOpen()) {
         if (totals.tick % 10 == 0) {
@@ -727,7 +860,7 @@ void windowManager::taskMenu(RenderWindow& window) {
                     for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
                         listItem& item = taskList[taskOrder[i]];
                         if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
-                            MessageBoxA(NULL, to_string(item.pos).c_str(), "deb", MB_OK);
+                            //MessageBoxA(NULL, to_string(item.pos).c_str(), "deb", MB_OK);
                             if (item.id == 0) {
                                 stats.hunger += foodMini(window);
                                 stats.record[0] = '0';
@@ -754,8 +887,13 @@ void windowManager::taskMenu(RenderWindow& window) {
                                 dishWash(window);
                                 dishDelay = totals.time + 90;
                                 taskOrder.erase(taskOrder.begin() + i);
-                                stats.money += 35;
+                                stats.money += 30;
                             } else if (item.id == 6) {
+                                carWash(window);
+                                carWashDelay = totals.time + 120;
+                                taskOrder.erase(taskOrder.begin() + i);
+                                stats.money += 30;
+                            } else if (item.id == 7) {
                                 stats.happiness += playFrisbee(window);
                                 taskOrder.erase(taskOrder.begin() + i);
                                 frisbeeDelay = 60 + totals.time;
