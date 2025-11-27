@@ -90,73 +90,35 @@ void utilitiesManager::moodManager() {
     }
 }
 
-void utilitiesManager::rollforward(listItem& item) {
-    if (item.pos % 3 == 2) {
-        item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
-        item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
-        item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
-        item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
-        item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
-    } else {
-        item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,60));
-        item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 60));
-        item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 60));
-        item.description.setPosition(item.description.getPosition() + Vector2f(0, 60));
-        item.title.setPosition(item.title.getPosition() + Vector2f(0, 60));
-    }
-    item.pos++;
+void utilitiesManager::rollListItem(listItem& item, int pos) {
+    int relativePos = pos % 3;
+    item.image.rectangle.setPosition(Vector2f(60, 40 + 60 * relativePos));
+    item.title.setPosition(Vector2f( 160, 20 + 60 * relativePos));
+    item.description.setPosition(Vector2f(165, 50 + 60 * relativePos));
+    item.buy.rectangle.setPosition(Vector2f(250, 35 + 60 * relativePos));
+    item.cost.setPosition(Vector2f(250, 40 + 60 * relativePos));
+    item.pos = pos;
 }
 
 void utilitiesManager::taskListCheck(vector<listItem>& taskItems, vector<int>& taskOrder) {
-    if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end())
+    if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end() && stats.mood != "sad")
         taskOrder.push_back(0);
     if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
         taskOrder.push_back(1);
-    if (stats.record[5] - '0' && stats.mood == "dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
+    if (stats.record[6] - '0' && stats.mood == "dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
         taskOrder.push_back(2);
     if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
         taskOrder.push_back(3);
     if (trashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
         taskOrder.push_back(4);
-    if (stats.record[4] - '0' && dishDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 5) == taskOrder.end())
+    if (stats.record[5] - '0' && dishDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 5) == taskOrder.end())
         taskOrder.push_back(5);
-    if (stats.record[5] - '0' && carWashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 6) == taskOrder.end())
+    if (stats.record[6] - '0' && carWashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 6) == taskOrder.end())
         taskOrder.push_back(6);
-    if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 7) == taskOrder.end() && frisbeeDelay - totals.time <= 0)
+    if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 7) == taskOrder.end() && frisbeeDelay - totals.time <= 0 && stats.mood != "sad")
         taskOrder.push_back(7);
-}
-
-void utilitiesManager::rollbackward(listItem& item) {
-    if (item.pos % 3 == 0) {
-        item.image.rectangle.setPosition(item.image.rectangle.getPosition() + Vector2f(0,120));
-        item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() + Vector2f(0, 120));
-        item.cost.setPosition(item.cost.getPosition() + Vector2f(0, 120));
-        item.description.setPosition(item.description.getPosition() + Vector2f(0, 120));
-        item.title.setPosition(item.title.getPosition() + Vector2f(0, 120));
-    } else {
-        item.image.rectangle.setPosition(item.image.rectangle.getPosition() - Vector2f(0,60));
-        item.buy.rectangle.setPosition(item.buy.rectangle.getPosition() - Vector2f(0, 60));
-        item.cost.setPosition(item.cost.getPosition() - Vector2f(0, 60));
-        item.description.setPosition(item.description.getPosition() - Vector2f(0, 60));
-        item.title.setPosition(item.title.getPosition() - Vector2f(0, 60));
-    }
-    item.pos--;
-}
-
-void utilitiesManager::roll(vector<listItem>& base, int start, string command) {
-    for (auto& item : base) {
-        if (command == "backwards") {
-            if (item.pos > start) {
-                rollbackward(item);
-            } else if (item.pos == start) {
-                item.pos = -1;
-            }
-        } else if (command == "forwards") {
-            if (item.pos > start) {
-                rollforward(item);
-            }
-        }
-    }
+    if (stats.record[4] - '0' && find(taskOrder.begin(), taskOrder.end(), 8) == taskOrder.end() && brushDelay - totals.time <= 0)
+        taskOrder.push_back(8);
 }
 
 void utilitiesManager::textRecenter(Text& text, string command) {

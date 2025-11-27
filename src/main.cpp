@@ -33,7 +33,6 @@ int main() {
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
 
     //Make window and set some basic stuff
-    RenderWindow window(VideoMode(Vector2u(300, 275)), "Virtual Pet", Style::None, State::Windowed);
     window.setFramerateLimit(60);
     window.setKeyRepeatEnabled(false);
     window.setPosition({0, (int)VideoMode::getDesktopMode().size.y - 275});
@@ -61,7 +60,7 @@ int main() {
     Text moneyText = creations.defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
 
     if (stats.record[stats.record.size() - 1] - '0' == 0)
-        stats.name = windows.enterName(window);
+        stats.name = windows.enterName();
     if (stats.name == "CLOSE PLEASE")
         return 0;
     stats.record[stats.record.size() - 1] = '1';
@@ -129,10 +128,10 @@ int main() {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (!sleepy)
-                            windows.shopMenu(window);
+                            windows.shopMenu();
                     } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (!sleepy)
-                            windows.taskMenu(window);
+                            windows.taskMenu();
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (sleepy) {
                             sleepy = false;

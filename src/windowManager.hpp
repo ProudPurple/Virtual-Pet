@@ -2,15 +2,17 @@
 
 class windowManager {
 public:
-    static string enterName(RenderWindow& window);
-    static void shopMenu(RenderWindow& window);
-    static void statDisplay(RenderWindow& window);
-    static void cleanPet(RenderWindow& window);
-    static void taskMenu(RenderWindow& window);
-    static void dishWash(RenderWindow& window);
-    static void carWash(RenderWindow& window);
-    static int foodMini(RenderWindow& window);
-    static void takeOutTrash(RenderWindow& window);
-    static void vetVisit(RenderWindow& window);
-    static int playFrisbee(RenderWindow& window);
+    static string enterName();
+    static void shopMenu();
+    static void statDisplay();
+    static void cleanPet();
+    static void taskMenu();
+    static void dishWash();
+    static void carWash();
+    static int foodMini();
+    static void brushPet();
+    static void cheerUp();
+    static void takeOutTrash();
+    static void vetVisit();
+    static int playFrisbee();
 };

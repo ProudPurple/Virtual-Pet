@@ -4,6 +4,7 @@
 
 extern Totals totals;
 extern Stats stats;
+extern RenderWindow window;
 extern Font FONT;
 extern Color DEFAULT_GREEN;
 extern Color LIGHT_GREEN;
@@ -12,6 +13,7 @@ extern thread backgroundThread;
 extern int frisbeeDelay;
 extern int trashDelay;
 extern int carWashDelay;
+extern int brushDelay;
 extern int dishDelay;
 extern int lastClick;
 extern bool sleepy;
