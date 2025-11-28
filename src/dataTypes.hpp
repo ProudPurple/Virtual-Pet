@@ -24,6 +24,7 @@ struct Stats {
     int happiness;
     int hash;
     string name;
+    string type;
     string mood;
     string record;
 

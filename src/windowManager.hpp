@@ -3,6 +3,7 @@
 class windowManager {
 public:
     static string enterName();
+    static void petType();
     static void shopMenu();
     static void statDisplay();
     static void cleanPet();

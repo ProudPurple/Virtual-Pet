@@ -4,10 +4,65 @@
 #include "windowManager.hpp"
 #include "globals.hpp"
 
+void windowManager::petType() {
+    string type = "N/A";
+    Text instruction = creationManager::defineText(25, 150,50, DEFAULT_GREEN, "   What Type of\nPet Do You Want");
+    utilitiesManager::textRecenter(instruction, "middle");
+    RectangleImage dog = creationManager::defineRectangleImage("dogNormal", Vector2f(75,75), Vector2f(50,150));
+    RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(75,75), Vector2f(150,150));
+    RectangleImage bear = creationManager::defineRectangleImage("bearNormal", Vector2f(75,75), Vector2f(250,150));
+    RectangleImage select = creationManager::defineRectangleImage("select", Vector2f(150,50), Vector2f(150,200));
+    while (window.isOpen()) {
+        window.clear(Color(0,1,0));
+        window.draw(dog.rectangle);
+        window.draw(cat.rectangle);
+        window.draw(bear.rectangle);
+        window.draw(instruction);
+        window.draw(select.rectangle);
+
+        window.display();
+
+        while (const optional event = window.pollEvent()) {
+            if (event->is<Event::Closed>()) {
+                return;
+            }
+
+            if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
+                if (mousePressed->button == Mouse::Button::Left) {
+                    Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                    if (select.rectangle.getGlobalBounds().contains(mousePos) && type != "N/A") {
+                        stats.type = type;
+                        return;
+                    } else if (dog.rectangle.getGlobalBounds().contains(mousePos)) {
+                        type = "dog";
+                        dog.rectangle.setSize(Vector2f(90,90));
+                        cat.rectangle.setSize(Vector2f(75,75));
+                        bear.rectangle.setSize(Vector2f(75,75));
+                        dog.rectangle.setPosition(Vector2f(50,150));
+                    } else if (cat.rectangle.getGlobalBounds().contains(mousePos)) {
+                        type = "cat";
+                        dog.rectangle.setSize(Vector2f(75,75));
+                        cat.rectangle.setSize(Vector2f(90,90));
+                        bear.rectangle.setSize(Vector2f(75,75));
+                        cat.rectangle.setPosition(Vector2f(150,150));
+                    } else if (bear.rectangle.getGlobalBounds().contains(mousePos)) {
+                        type = "bear";
+                        dog.rectangle.setSize(Vector2f(75,75));
+                        cat.rectangle.setSize(Vector2f(75,75));
+                        bear.rectangle.setSize(Vector2f(90,90));
+                        bear.rectangle.setPosition(Vector2f(250,150));
+                    }
+                }
+            }
+        }
+
+    }
+}
+
 string windowManager::enterName() {
     bool typing = true;
-    Text nameText = creationManager::defineText(15, 150, 150, Color::Green, "");
-    Text namePrompt = creationManager::defineText(25, 50, 50, Color::Green, "What is Your\n Pets Name?");
+    Text nameText = creationManager::defineText(15, 150, 150, DEFAULT_GREEN, "");
+    Text namePrompt = creationManager::defineText(25, 50, 50, DEFAULT_GREEN, "What is Your\n Pets Name?");
     while (window.isOpen() && typing) {
         window.clear(Color(0,1,0));
         window.draw(nameText);
@@ -16,7 +71,7 @@ string windowManager::enterName() {
 
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>())
-                return "CLOSE PLEASE";
+                return "N/A";
             if (const auto* textEntered = event->getIf<Event::TextEntered>()) {
                 char text = textEntered->unicode;
                 if (text == 8 && nameText.getString().getSize() > 0) {
@@ -55,7 +110,7 @@ void windowManager::shopMenu() {
     shopItems.push_back(creationManager::defineListItem("closeWasher", "DishWasher", "Clean Dishes for your parents", 50, 5));
     shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 10, 6));
     shopItems.push_back(creationManager::defineListItem("catSleepy", "Sleep", "Let your cat rest decreasing\nhunger lost when inactive", 50, 7));
-    shopItems.push_back(creationManager::defineListItem("catRich", "MONEY", "SO MONEY", 100, 8));
+    shopItems.push_back(creationManager::defineListItem(stats.type + "Rich", "MONEY", "SO MONEY", 100, 8));
     for (int i = 0; i < shopItems.size(); i++) {
         if (stats.record[shopItems[i].id] == '0') {
             itemOrder.push_back(shopItems[i].id);
@@ -150,7 +205,7 @@ void windowManager::statDisplay() {
             window.draw(txt);
         window.display();
 
-            while (const optional event = window.pollEvent()) {
+        while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
                 utilitiesManager::close(window);
             }
@@ -237,7 +292,7 @@ int windowManager::foodMini() {
 }
 
 void windowManager::vetVisit() {
-    RectangleImage catSick = creationManager::defineRectangleImage("catSick", Vector2f(200,200), Vector2f(150, 140));
+    RectangleImage catSick = creationManager::defineRectangleImage(stats.type + "Sick", Vector2f(200,200), Vector2f(150, 140));
     RectangleImage medkit = creationManager::defineRectangleImage("medKit", Vector2f(60,60), Vector2f(40, 160));
     RectangleImage syringe = creationManager::defineRectangleImage("syringe", Vector2f(20,40), Vector2f(40,100));
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Get the Syring\nand Stab Away");
@@ -252,7 +307,7 @@ void windowManager::vetVisit() {
         }
 
         if (clickTwo && catSick.rectangle.getGlobalBounds().contains(syringe.rectangle.getPosition() - Vector2f(40,-10))) {
-            creationManager::defineTexture(catSick.texture, "catNormal");
+            creationManager::defineTexture(catSick.texture, stats.type + "Normal");
             window.draw(instructions);
             window.draw(medkit.rectangle);
             window.draw(catSick.rectangle);
@@ -290,7 +345,7 @@ void windowManager::vetVisit() {
 
 int windowManager::playFrisbee() {
     RectangleImage frisbee = creationManager::defineRectangleImage("frisbee", Vector2f(60,60), Vector2f(150, 200));
-    RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(100,100), Vector2f(150, 60));
+    RectangleImage cat = creationManager::defineRectangleImage(stats.type + "Normal", Vector2f(100,100), Vector2f(150, 60));
     RectangleShape startPos = creationManager::defineRectangle(5,5,150,200);
     RectangleImage nice = creationManager::defineRectangleImage("exclamationPoint", Vector2f(50, 100), Vector2f(150, 100));
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Throw to your pet\nwith space");
@@ -487,7 +542,7 @@ void windowManager::cleanPet() {
     vector<RectangleImage> bubbles;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Spray");
     utilitiesManager::textRecenter(instructions, "middle");
-    RectangleImage cat = creationManager::defineRectangleImage("catDirty", Vector2f(200,200), Vector2f(150,125));
+    RectangleImage cat = creationManager::defineRectangleImage(stats.type + "Dirty", Vector2f(200,200), Vector2f(150,125));
     RectangleImage spray = creationManager::defineRectangleImage("spray", Vector2f(20,40),Vector2f(50,130));
     RectangleImage soap = creationManager::defineRectangleImage("soap", Vector2f(50,40), Vector2f(50, 130));
     RectangleImage spraySFX = creationManager::defineRectangleImage("spraySFX", Vector2f(20,20),Vector2f(0,0));
@@ -521,7 +576,7 @@ void windowManager::cleanPet() {
             triggers[3] = true;
             instructions.setString("Good Job");
             utilitiesManager::textRecenter(instructions, "middle");
-            creationManager::defineTexture(cat.texture, "catNormal");
+            creationManager::defineTexture(cat.texture, stats.type + "Normal");
             for (int i = bubbles.size() - 1; i >= 0; i--) {
                 bubbles.pop_back();
             }
@@ -809,7 +864,7 @@ void windowManager::cheerUp() {
     vector<RectangleImage> tears;
     for (int i = 0; i < 6; i++)
         tears.push_back(creationManager::defineRectangleImage("tear", Vector2f(30,30), Vector2f((i / 3 < 1) ? 120 : 180, ((int)i / 2) * 40 + 100)));
-    RectangleImage cat = creationManager::defineRectangleImage("catSad", Vector2f(250,250), Vector2f(150,125));
+    RectangleImage cat = creationManager::defineRectangleImage(stats.type + "Sad", Vector2f(250,250), Vector2f(150,125));
     RectangleImage hand = creationManager::defineRectangleImage("Hand", Vector2f(45,45),Vector2f(150,70));
     RectangleImage cloth = creationManager::defineRectangleImage("cloth", Vector2f(60,60), Vector2f(0,0));
     RectangleShape noseHitbox = creationManager::defineRectangle(20,20, 150, 130);
@@ -879,7 +934,7 @@ void windowManager::cheerUp() {
                         triggers[2] = true;
                         instructions.setString("Good Job!");
                         utilitiesManager::textRecenter(instructions, "middle");
-                        creationManager::defineTexture(cat.texture, "catNormal");
+                        creationManager::defineTexture(cat.texture, stats.type + "Normal");
                     }
                 }
             }
@@ -893,7 +948,7 @@ void windowManager::brushPet() {
     int timeCorrect = 0, lastTick = totals.tick, pace = 1;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Follow The Sparkles");
     utilitiesManager::textRecenter(instructions, "middle");
-    RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(250,250), Vector2f(150,125));
+    RectangleImage cat = creationManager::defineRectangleImage(stats.type + "Normal", Vector2f(250,250), Vector2f(150,125));
     RectangleImage brush = creationManager::defineRectangleImage("brush", Vector2f(90,90), Vector2f(0,110));
     RectangleImage paceSetter = creationManager::defineRectangleImage("sparkles", Vector2f(30,150), Vector2f(80,110));
 
@@ -975,7 +1030,7 @@ void windowManager::taskMenu() {
     int pageNum = 0;
     vector<listItem> taskList;
     taskList.push_back(creationManager::defineListItem("foodBag", "FEED", "feed him", -1, 0));
-    taskList.push_back(creationManager::defineListItem("catSad", "Cheer Up", "Make Happy", -1, 1));
+    taskList.push_back(creationManager::defineListItem(stats.type + "Sad", "Cheer Up", "Make Happy", -1, 1));
     taskList.push_back(creationManager::defineListItem("soapBottle", "Clean Bro Up", "He Dirty", -1, 2));
     taskList.push_back(creationManager::defineListItem("medKit", "Heal", "help ur\nsick pet", -1, 3));
     taskList.push_back(creationManager::defineListItem("trash", "Take Out Trash", "Clean Up for some Moolah", -1, 4));
@@ -1033,11 +1088,11 @@ void windowManager::taskMenu() {
                                     stats.happiness += 10;
                                     break;
                                 case 2:
-                                    stats.mood = "normal";
+                                    stats.mood = "Normal";
                                     cleanPet();
                                     break;
                                 case 3:
-                                    stats.mood = "normal";
+                                    stats.mood = "Normal";
                                     vetVisit();
                                     stats.record[1] = '0';
                                     break;
@@ -1072,7 +1127,7 @@ void windowManager::taskMenu() {
                             if (item.id != 9)
                                 taskOrder.erase(taskOrder.begin() + i);
                             if (rand() % 3 == 0 && item.id != taskOrder.size() - 1 && item.id != 2)
-                                stats.mood = "dirty";
+                                stats.mood = "Dirty";
                             break;
                         }
                     }

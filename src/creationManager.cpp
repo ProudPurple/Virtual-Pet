@@ -56,22 +56,6 @@ Text creationManager::defineText(int charSize, float x, float y, Color color, St
     return txt;
 }
 
-void creationManager::mainSpriteControl(shared_ptr<Texture>& texture) {
-    if (stats.mood == "mad")
-        defineTexture(texture, "catMad");
-    else if (stats.mood == "dirty")
-        defineTexture(texture, "catDirty");
-    else if (stats.mood == "sick")
-        defineTexture(texture, "catSick");
-    else if (stats.mood == "sad")
-        defineTexture(texture, "catSad");
-    else if (stats.mood == "normal")
-        if (stats.record[5] - '0') 
-            defineTexture(texture, "catRich");
-        else
-            defineTexture(texture, "catNormal");
-}
-
 RectangleImage creationManager::defineRectangleImage(string filepath, Vector2f size, Vector2f pos) {
     RectangleImage rect;
     rect.rectangle = defineRectangle(size.x, size.y, pos.x, pos.y);

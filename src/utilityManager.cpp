@@ -21,7 +21,7 @@ int utilitiesManager::hasher(string record) {
 void utilitiesManager::takeInStats() {
     ifstream fin("stats.txt");
     fin >> stats.hunger >> stats.money >> stats.happiness >> stats.record >> stats.hash;
-    fin >> stats.name >> stats.mood;
+    fin >> stats.name >> stats.type >> stats.mood;
     fin >> totals.foodEaten >> totals.moneyGained >> totals.moneySpent >> totals.tick >> totals.time >> totals.timesSick;
 }
 
@@ -33,6 +33,7 @@ void utilitiesManager::save() {
     << stats.record << ' '
     << hasher(stats.record) << ' '
     << stats.name << ' '
+    << stats.type << ' '
     << stats.mood << endl;
 
     fout << totals.foodEaten << ' '
@@ -54,18 +55,16 @@ void utilitiesManager::background() {
     while (true && running) {
         totals.tick++;
         
-        if (totals.tick % (stats.mood == "sick" ? 3 : 10) == 0 && stats.hunger >= 0 && !sleepy) {
+        if (totals.tick % (stats.mood == "Sick" ? 3 : 10) == 0 && stats.hunger >= 0 && !sleepy)
             stats.hunger--;
-        } else if (stats.hunger > 100)
+        else if (stats.hunger > 100)
             stats.hunger = 100;
-            
-        if (totals.tick % 50 == 0) {
-            stats.money += 5;
-            totals.moneyGained += 5;
-        }
+        else if (stats.hunger < 0)
+            stats.hunger = 0;
+    
         if (totals.tick % 5 == 0)
             totals.time++;
-        if (totals.tick % 500 == 0)
+        if (totals.tick % 300 == 0)
             save();
         utilitiesManager::moodManager();
         if (totals.tick >= 100000)
@@ -75,18 +74,18 @@ void utilitiesManager::background() {
 }
 
 void utilitiesManager::moodManager() {
-    if (stats.happiness <= 70 && totals.tick % 120 == 0 && rand() % 3 == 0 || stats.mood == "sick") {
-        if (stats.mood != "sick")
+    if (stats.happiness <= 70 && totals.tick % 120 == 0 && rand() % 3 == 0 || stats.mood == "Sick" && !sleepy) {
+        if (stats.mood != "Sick")
             totals.timesSick++;
         stats.mood = "sick";
-    } else if (stats.mood == "dirty") {
-        stats.mood = "dirty";
+    } else if (stats.mood == "Dirty") {
+        stats.mood = "Dirty";
     } else if (stats.hunger <= 0) {
-        stats.mood = "mad";
+        stats.mood = "Mad";
     } else if (stats.happiness <= 0) {
-        stats.mood = "sad";
+        stats.mood = "Sad";
     } else {
-        stats.mood = "normal";
+        stats.mood = "Normal";
     }
 }
 
@@ -101,13 +100,13 @@ void utilitiesManager::rollListItem(listItem& item, int pos) {
 }
 
 void utilitiesManager::taskListCheck(vector<listItem>& taskItems, vector<int>& taskOrder) {
-    if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end() && stats.mood != "sad")
+    if (stats.record[0] - '0' && find(taskOrder.begin(), taskOrder.end(), 0) == taskOrder.end() && stats.mood != "Sad")
         taskOrder.push_back(0);
-    if (stats.mood == "sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
+    if (stats.mood == "Sad" && find(taskOrder.begin(), taskOrder.end(), 1) == taskOrder.end())
         taskOrder.push_back(1);
-    if (stats.record[6] - '0' && stats.mood == "dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
+    if (stats.record[6] - '0' && stats.mood == "Dirty" && find(taskOrder.begin(), taskOrder.end(), 2) == taskOrder.end())
         taskOrder.push_back(2);
-    if (stats.mood == "sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
+    if (stats.mood == "Sick" && stats.record[1] - '0' && find(taskOrder.begin(), taskOrder.end(), 3) == taskOrder.end())
         taskOrder.push_back(3);
     if (trashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 4) == taskOrder.end())
         taskOrder.push_back(4);
@@ -115,9 +114,9 @@ void utilitiesManager::taskListCheck(vector<listItem>& taskItems, vector<int>& t
         taskOrder.push_back(5);
     if (stats.record[6] - '0' && carWashDelay - totals.time < 0 && find(taskOrder.begin(), taskOrder.end(), 6) == taskOrder.end())
         taskOrder.push_back(6);
-    if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 7) == taskOrder.end() && frisbeeDelay - totals.time <= 0 && stats.mood != "sad")
+    if (stats.record[3] - '0' && find(taskOrder.begin(), taskOrder.end(), 7) == taskOrder.end() && frisbeeDelay - totals.time <= 0 && stats.mood != "Sad")
         taskOrder.push_back(7);
-    if (stats.record[4] - '0' && find(taskOrder.begin(), taskOrder.end(), 8) == taskOrder.end() && brushDelay - totals.time <= 0)
+    if (stats.record[4] - '0' && find(taskOrder.begin(), taskOrder.end(), 8) == taskOrder.end() && brushDelay - totals.time <= 0 && stats.mood != "Sad")
         taskOrder.push_back(8);
 }
 

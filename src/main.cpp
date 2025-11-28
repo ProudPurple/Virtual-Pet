@@ -42,8 +42,14 @@ int main() {
     LONG style = GetWindowLong(hwnd, GWL_EXSTYLE);
     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, RGB(0,1,0), 0, LWA_COLORKEY);
+    
+    if (stats.record[stats.record.size() - 2] == '0')
+        windows.petType();
+    if (stats.type == "N/A")
+        return 0;
+    stats.record[stats.record.size() - 2] = '1';
 
-    RectangleImage spriteBase = creations.defineRectangleImage("catNormal", Vector2f(250, 250), Vector2f(150, 125));
+    RectangleImage spriteBase = creations.defineRectangleImage(stats.type + "Normal", Vector2f(250, 250), Vector2f(150, 125));
     RectangleImage cornerMove = creations.defineRectangleImage("cornerMove", Vector2f(50, 50), Vector2f(240, 40));
     RectangleImage shopButton = creations.defineRectangleImage("shopButton", Vector2f(50, 50), Vector2f(45, 85));
     RectangleImage tasksButton = creations.defineRectangleImage("tasksButton", Vector2f(50, 50), Vector2f(45, 155));
@@ -58,30 +64,32 @@ int main() {
 
     Text hungerText = creations.defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
     Text moneyText = creations.defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
-
+    
     if (stats.record[stats.record.size() - 1] - '0' == 0)
         stats.name = windows.enterName();
-    if (stats.name == "CLOSE PLEASE")
+    if (stats.name == "N/A")
         return 0;
+
     stats.record[stats.record.size() - 1] = '1';
 
     Text nameText = creations.defineText(30, 150, 10, DEFAULT_GREEN, stats.name);
     utilities.textRecenter(nameText, "middle");
 
     backgroundThread = thread(utilities.background);
+    utilities.save();
 
     while (window.isOpen()) {
         sleepy = stats.record[5] - '0' && totals.tick - lastClick >= 180 || sleepy;
         window.clear(Color(0,1,0));
  
         if (totals.tick % 10)
-            creations.mainSpriteControl(spriteBase.texture);
+            creations.defineTexture(spriteBase.texture, stats.type+(stats.mood == "Normal" && stats.record[8] - '0' ? "Rich" : stats.mood));
 
         hungerDifference = stats.hunger - hungerBar.getSize().y * 4 / 3;
         hungerBar.setSize(Vector2f(30, hungerBar.getSize().y + (hungerDifference > 0 ? min(1, hungerDifference) : max(-1, hungerDifference))));
 
         if (sleepy) {
-            creations.defineTexture(spriteBase.texture, "catSleepy");
+            creations.defineTexture(spriteBase.texture, stats.type + "Sleepy");
             creations.defineTexture(tasksButton.texture, "sleepyButton");
             creations.defineTexture(shopButton.texture, "sleepyButton");
             hungerBacklog = (totals.tick - lastClick) / 20;
@@ -135,7 +143,7 @@ int main() {
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (sleepy) {
                             sleepy = false;
-                            stats.hunger -= hungerBacklog;
+                            stats.hunger -= min(hungerBacklog, stats.hunger);
                             hungerBacklog = 0;
                         } else if (!petting.start && stats.record[2] - '0') {
                             stats.happiness++;
