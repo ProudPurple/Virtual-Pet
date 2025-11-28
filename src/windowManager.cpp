@@ -7,6 +7,7 @@
 void windowManager::petType() {
     string type = "N/A";
     Text instruction = creationManager::defineText(25, 150,50, DEFAULT_GREEN, "   What Type of\nPet Do You Want");
+    Text typeTxt = creationManager::defineText(20, 150, 100, DEFAULT_GREEN, "");
     utilitiesManager::textRecenter(instruction, "middle");
     RectangleImage dog = creationManager::defineRectangleImage("dogNormal", Vector2f(75,75), Vector2f(50,150));
     RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(75,75), Vector2f(150,150));
@@ -15,12 +16,18 @@ void windowManager::petType() {
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
         window.draw(dog.rectangle);
+        window.draw(typeTxt);
         window.draw(cat.rectangle);
         window.draw(bear.rectangle);
         window.draw(instruction);
         window.draw(select.rectangle);
 
         window.display();
+
+        if (type != "N/A") {
+            typeTxt.setString(type);
+            utilitiesManager::textRecenter(typeTxt, "middle");
+        }
 
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
@@ -180,23 +187,37 @@ void windowManager::shopMenu() {
 void windowManager::statDisplay() {
     RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
-    Text title = creationManager::defineText(15, 150, 20, DEFAULT_GREEN, "All Time Stats");
+    Text title = creationManager::defineText(15, 150, 20, DEFAULT_GREEN, "Stat Report");
     utilitiesManager::textRecenter(title, "middle");
     vector<Text> statList;
-    statList.push_back(creationManager::defineText(10, 150, 40, DEFAULT_GREEN, "Money Spent: " + to_string(totals.moneySpent)));
-    statList.push_back(creationManager::defineText(10, 150, 55, DEFAULT_GREEN, "Money Gained: " + to_string(totals.moneyGained)));
-    statList.push_back(creationManager::defineText(10, 150, 70, DEFAULT_GREEN, "Food Eaten: " + to_string(totals.foodEaten)));
-    statList.push_back(creationManager::defineText(10, 150, 85, DEFAULT_GREEN, "Seconds Spent: " + to_string(totals.time)));
-    statList.push_back(creationManager::defineText(10, 150, 100, DEFAULT_GREEN, "Times Sick: " + to_string(totals.timesSick)));
-
-    for (auto& txt : statList) 
-        utilitiesManager::textRecenter(txt, "middle");
+    statList.push_back(creationManager::defineText(10, 75, 155, DEFAULT_GREEN, "Money Spent: " + to_string(totals.moneySpent)));
+    statList.push_back(creationManager::defineText(10, 225, 155, DEFAULT_GREEN, "Money Gained: " + to_string(totals.moneyGained)));
+    statList.push_back(creationManager::defineText(10, 75, 165, DEFAULT_GREEN, "Food Eaten: " + to_string(totals.foodEaten)));
+    statList.push_back(creationManager::defineText(10, 150, 180, DEFAULT_GREEN, "Seconds Spent: " + to_string(totals.time)));
+    statList.push_back(creationManager::defineText(10, 225, 165, DEFAULT_GREEN, "Times Sick: " + to_string(totals.timesSick)));
+    statList.push_back(creationManager::defineText(15, 150, 65, DEFAULT_GREEN, "Hunger: " + to_string(stats.hunger) + "%"));
+    statList.push_back(creationManager::defineText(15, 150, 82.5, DEFAULT_GREEN, "Money: $" + to_string(stats.money)));
+    statList.push_back(creationManager::defineText(15, 150, 100, DEFAULT_GREEN, "Happiness: " + to_string(stats.happiness) + "%"));
+    statList.push_back(creationManager::defineText(20, 150, 42, DEFAULT_GREEN, "Mood: " + stats.mood));
+    statList.push_back(creationManager::defineText(12, 150, 130, DEFAULT_GREEN, "Tip: "));
 
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
 
         statList[1].setString("Money Gained: " + to_string(totals.moneyGained));
         statList[3].setString("Seconds Spent: " + to_string(totals.time));
+        statList[5].setString("Hunger: " + to_string(stats.hunger) + "%");
+        statList[6].setString("Money: $" + to_string(stats.money));
+        statList[7].setString("Happiness: " + to_string(stats.happiness) + "%");
+        if (stats.happiness <= 40 && stats.happiness <= stats.hunger - 15) {
+            statList[9].setString("  Tip: Play or Groom Your\n Pet to make them happier");
+        } else if (stats.hunger <= 40)
+            statList[9].setString("   Tip: Pet food is used up after\none use and must be repurchased");
+        else
+            statList[9].setString("    Tip: More Tasks are\nUnlocked via shop items");
+
+        for (auto& txt : statList) 
+            utilitiesManager::textRecenter(txt, "middle");
 
         window.draw(background.rectangle);
         window.draw(close.rectangle);
