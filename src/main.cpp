@@ -7,18 +7,14 @@
 using namespace sf;
 using namespace std;
 
-/*###############################################
-#                    TODO:                      #
-#              MINIGAME TIME!!!                 #      
-#                  CHECKUP                      #
-###############################################*/
-
-
-
 int main() {
     creationManager creations;
     utilitiesManager utilities;
     windowManager windows;
+    Image icon;
+    if (!icon.loadFromFile("bin/virtualPet.png"))
+        MessageBoxA(NULL, "No More Icon", "Erro", MB_OK);
+    window.setIcon(icon);
     
     //Takes in saved stats from txt file
     utilities.takeInStats();

@@ -1,2 +1,1 @@
-#include "resources.h"
-IDI_APP_ICON ICON "catRich.ico"
+IDI_APP_ICON ICON "virtualPet.ico"
