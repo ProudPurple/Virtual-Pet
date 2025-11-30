@@ -19,12 +19,13 @@ int main() {
     creationManager creations;
     utilitiesManager utilities;
     windowManager windows;
-
+    
     //Takes in saved stats from txt file
     utilities.takeInStats();
     stats.hash = utilities.hasher(stats.record);
     if (stats.hash != utilities.hasher(stats.record))
         return 0;
+
     
     lastClick = totals.tick;
     int hungerBacklog = 0, pastHunger = stats.hunger, hungerDifference = 0;
@@ -134,18 +135,25 @@ int main() {
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
+                    
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        if (!sleepy)
+                        if (!sleepy) {
+                            creations.playSound("open");
                             windows.shopMenu();
+                        }
                     } else if (tasksButton.rectangle.getGlobalBounds().contains(mousePos)) {
-                        if (!sleepy)
+                        if (!sleepy) {
+                            creations.playSound("open");
                             windows.taskMenu();
+                        }
                     } else if (spriteBase.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (sleepy) {
+                            creations.playSound("buy");
                             sleepy = false;
                             stats.hunger -= min(hungerBacklog, stats.hunger);
                             hungerBacklog = 0;
                         } else if (!petting.start && stats.record[2] - '0') {
+                            creations.playSound("happy");
                             stats.happiness++;
                             petting.start = totals.tick, petting.time = 27;
                         }

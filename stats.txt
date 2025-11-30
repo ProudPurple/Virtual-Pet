@@ -1,2 +1,2 @@
-44 0 29 000000011 -505 anderdingus cat Normal
-0 0 0 22 4 0
+71 99950 29 011111111 -1 anderdingus cat Normal
+1 0 50 302 60 0

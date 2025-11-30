@@ -15,5 +15,7 @@ int brushDelay = 0;
 int trashDelay = 0;
 int dishDelay = 0;
 int lastClick = 0;
+list<SoundBuffer> buffers;
+list<Sound> sounds;
 bool sleepy = false;
 atomic<bool> running = true;

@@ -24,6 +24,25 @@ RectangleShape creationManager::defineRectangle(float width, float height, float
     return rect;
 }
 
+void creationManager::playSound(string filepath) {
+    buffers.emplace_back();
+    if (!buffers.back().loadFromFile("sounds/" + filepath + ".mp3")) {
+        MessageBoxA(NULL, (filepath + " failed to load").c_str(), "debug", MB_OK);
+        buffers.pop_back();
+        return;
+    }
+
+    sounds.emplace_back(buffers.back());
+    sounds.back().play();
+}
+
+void creationManager::stopSound() {
+    for (auto sound : sounds)
+        sound.stop();
+    sounds.clear();
+    buffers.clear();
+}
+
 
 listItem creationManager::defineListItem(string filepath = "catRich", string title = "N/A", string description = "N/A", int cost = 0, int id = 0) {
     listItem item;

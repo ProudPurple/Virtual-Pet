@@ -1,6 +1,7 @@
 #pragma once
 #include "dataTypes.hpp"
 #include <thread>
+#include <list>
 
 extern Totals totals;
 extern Stats stats;
@@ -15,6 +16,8 @@ extern int trashDelay;
 extern int carWashDelay;
 extern int brushDelay;
 extern int dishDelay;
+extern list<SoundBuffer> buffers;
+extern list<Sound> sounds;
 extern int lastClick;
 extern bool sleepy;
 extern atomic<bool> running;

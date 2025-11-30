@@ -31,6 +31,7 @@ void windowManager::petType() {
 
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
+                creationManager::playSound("close");
                 return;
             }
 
@@ -39,20 +40,24 @@ void windowManager::petType() {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (select.rectangle.getGlobalBounds().contains(mousePos) && type != "N/A") {
                         stats.type = type;
+                        creationManager::playSound("close");
                         return;
                     } else if (dog.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         type = "dog";
                         dog.rectangle.setSize(Vector2f(90,90));
                         cat.rectangle.setSize(Vector2f(75,75));
                         bear.rectangle.setSize(Vector2f(75,75));
                         dog.rectangle.setPosition(Vector2f(50,150));
                     } else if (cat.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         type = "cat";
                         dog.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setSize(Vector2f(90,90));
                         bear.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setPosition(Vector2f(150,150));
                     } else if (bear.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         type = "bear";
                         dog.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setSize(Vector2f(75,75));
@@ -94,6 +99,7 @@ string windowManager::enterName() {
             }
         }
     }
+    creationManager::playSound("close");
     return nameText.getString();
 }
 
@@ -167,6 +173,7 @@ void windowManager::shopMenu() {
                                 for (int j = i + 1; j < itemOrder.size(); j++)
                                     utilitiesManager::rollListItem(shopItems[itemOrder[j]], shopItems[itemOrder[j]].pos - 1);
                                 itemOrder.erase(itemOrder.begin() + i);
+                                creationManager::playSound("buy");
                                 break;
                             }
                         }
@@ -175,8 +182,10 @@ void windowManager::shopMenu() {
                         pageNum--;
                     else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= itemOrder.size()/3 && (float)itemOrder.size()/3 != pageNum + 1)
                         pageNum++;
-                    else if (close.rectangle.getGlobalBounds().contains(mousePos))
+                    else if (close.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         return;
+                    }
                 }
 
             }
@@ -235,13 +244,13 @@ void windowManager::statDisplay() {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (close.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         return;
                     }
                 }
             }
         }
     }
-    return;
 }
 
 int windowManager::foodMini() {
@@ -252,9 +261,13 @@ int windowManager::foodMini() {
     utilitiesManager::textRecenter(instructions, "middle");
     vector<RectangleImage> foodFall;
     foodBag.rectangle.rotate(degrees(180));
-    int foodTotal = 0, speed = 2, curTick = totals.tick, offset = 4, start = totals.time;
+    int foodTotal = 0, speed = 2, curTick = totals.tick, offset = 4, start = totals.time, lastMusic = totals.time;
     bool movement = false;
     while (window.isOpen() && totals.time <= start + 14) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         if (totals.time <= start + 3) {
             window.clear(Color(0,1,0));
             timeText.setString(to_string(start + 4 - totals.time));
@@ -281,6 +294,7 @@ int windowManager::foodMini() {
                 Vector2f curPosition = foodFall[i].rectangle.getPosition();
                 if (curPosition.y >= 170 && curPosition.y <= 190 && curPosition.x >= foodBowlPos.x - 50 && curPosition.x <= foodBowlPos.x + 50) {
                     foodTotal += 5;
+                    creationManager::playSound("button");
                     foodFall.erase(foodFall.begin() + i);
                     i--;
                 } else
@@ -309,6 +323,8 @@ int windowManager::foodMini() {
             }
         }
     }
+    creationManager::stopSound();
+    creationManager::playSound("close");
     return foodTotal;
 }
 
@@ -320,7 +336,12 @@ void windowManager::vetVisit() {
     utilitiesManager::textRecenter(instructions, "middle");
     syringe.rectangle.rotate(degrees(-20));
     bool clickOne = false, clickTwo = false;
+    int lastMusic = totals.time;
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         window.clear(Color(0,1,0));
         if (clickOne && !clickTwo) {
             if (syringe.rectangle.getPosition().y <= 100)
@@ -334,7 +355,10 @@ void windowManager::vetVisit() {
             window.draw(catSick.rectangle);
             window.draw(syringe.rectangle);
             window.display();
+            creationManager::playSound("happy");
             sleep(seconds(1));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             return;
         } else if (clickTwo) {
             syringe.rectangle.setPosition(Vector2f(Mouse::getPosition(window)));
@@ -353,9 +377,10 @@ void windowManager::vetVisit() {
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    if (medkit.rectangle.getGlobalBounds().contains(mousePos))
+                    if (medkit.rectangle.getGlobalBounds().contains(mousePos)) {
                         clickOne = true;
-                    else if (syringe.rectangle.getGlobalBounds().contains(mousePos) && clickOne) {
+                        creationManager::playSound("button");
+                    } else if (syringe.rectangle.getGlobalBounds().contains(mousePos) && clickOne) {
                         clickTwo = true;
                     }
                 }
@@ -373,10 +398,14 @@ int windowManager::playFrisbee() {
     Text duration = creationManager::defineText(15, 0, 0, DEFAULT_GREEN, "10");
     utilitiesManager::textRecenter(instructions, "middle");
     Vector2f throwPos, catPos = Vector2f(150, 60);
-    int score = 0, pastTime = totals.tick, startTime = totals.time, grabTime;
+    int score = 0, pastTime = totals.tick, startTime = totals.time, grabTime = totals.tick, lastMusic = totals.time;
     bool active = false, canThrow = true;
 
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         if (startTime - totals.time + 10 <= 0)
             break;
         window.clear(Color(0,1,0));
@@ -389,6 +418,7 @@ int windowManager::playFrisbee() {
             catPos = Vector2f(150,200);
             grabTime = totals.tick;
             nice.rectangle.setPosition(frisbee.rectangle.getPosition());
+            creationManager::playSound("happy");
         }
         if (pastTime + 2 <= totals.tick) {
             catPos = Vector2f((rand() % 150) + 50, (rand() % 75) + 50);
@@ -438,6 +468,8 @@ int windowManager::playFrisbee() {
             }
         }
     }
+    creationManager::stopSound();
+    creationManager::playSound("close");
     return score;
 }
 
@@ -451,7 +483,7 @@ void windowManager::takeOutTrash() {
     trash[4].rectangle.setPosition(Vector2f(123, 120));
     trash[5].rectangle.setPosition(Vector2f(240, 220));
     trash[6].rectangle.setPosition(Vector2f(172, 220));
-    int trashCount = 0, curTrash = -1;
+    int trashCount = 0, curTrash = -1, lastMusic = totals.time;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Trash and Put it In the Bin");
     utilitiesManager::textRecenter(instructions, "middle");
     RectangleImage trashBin = creationManager::defineRectangleImage("trashBin", Vector2f(40,50), Vector2f(260,210));
@@ -461,6 +493,10 @@ void windowManager::takeOutTrash() {
     RectangleShape trashHitbox = creationManager::defineRectangle(20,10, 260, 180);
     RectangleImage table = creationManager::defineRectangleImage("table", Vector2f(100,100), Vector2f(150,180));
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
         window.clear(Color(0,1,0));
 
@@ -489,7 +525,10 @@ void windowManager::takeOutTrash() {
         window.display();
 
         if (triggers[3]) {
+            creationManager::playSound("happy");
             sleep(chrono::seconds(1));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
 
@@ -498,6 +537,7 @@ void windowManager::takeOutTrash() {
                 Vector2f pos = trash[i].rectangle.getPosition();       
                 if (trashHitbox.getGlobalBounds().contains(pos) && curTrash != i) {
                     trashCount++;
+                    creationManager::playSound("button");
                     trash.erase(trash.begin() + i);
                     i--;
                     continue;
@@ -534,6 +574,7 @@ void windowManager::takeOutTrash() {
                     } else if (!triggers[1]) {
                         if (trashBin.rectangle.getGlobalBounds().contains(mousePos)) {
                             triggers[1] = true; 
+                            creationManager::playSound("button");
                             instructions.setString("Put in the Dumpster");
                             utilitiesManager::textRecenter(instructions, "middle");
                         }
@@ -567,18 +608,26 @@ void windowManager::cleanPet() {
     RectangleImage spray = creationManager::defineRectangleImage("spray", Vector2f(20,40),Vector2f(50,130));
     RectangleImage soap = creationManager::defineRectangleImage("soap", Vector2f(50,40), Vector2f(50, 130));
     RectangleImage spraySFX = creationManager::defineRectangleImage("spraySFX", Vector2f(20,20),Vector2f(0,0));
-    int sfxOffset = 0, sprayCount = 0;
+    int sfxOffset = 0, sprayCount = 0, lastMusic = totals.time;
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
         window.clear(Color(0,1,0));
         if (triggers[3]) {
+            creationManager::playSound("happy");
             sleep(chrono::seconds(2));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
         if (triggers[2] == true) {
             soap.rectangle.setPosition(mouseCoords);
             for (int i = 0; i < bubbleCoords.size(); i++) {
                 if (soap.rectangle.getGlobalBounds().contains(Vector2f(bubbleCoords[i].first, bubbleCoords[i].second))) {
+                    creationManager::playSound("button");
                     bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first, bubbleCoords[i].second)));
                     bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first - 10, bubbleCoords[i].second + 3)));
                     bubbles.push_back(creationManager::defineRectangleImage("bubble", Vector2f(30,30), Vector2f(bubbleCoords[i].first - 12, bubbleCoords[i].second - 7)));
@@ -628,6 +677,7 @@ void windowManager::cleanPet() {
                         utilitiesManager::textRecenter(instructions, "middle");
                     } else if (triggers[0]) {
                         sfxOffset = totals.tick + 1;
+                        creationManager::playSound("buy");
                         spraySFX.rectangle.setPosition(mousePos - Vector2f(20,10));
                         if (cat.rectangle.getGlobalBounds().contains(mousePos - Vector2f(20,10)))
                             sprayCount++;
@@ -644,7 +694,7 @@ void windowManager::cleanPet() {
 
 void windowManager::carWash() {
     vector<bool> triggers(3, false);
-    int carDir = 0, sprayDelay = 0, shineCount = 0, bubbleCount = 0;
+    int carDir = 0, sprayDelay = 0, shineCount = 0, bubbleCount = 0, lastMusic = totals.time;
     vector<int> sprayCount(4,0);
     vector<pair<int,int>> bubbleCoords = {{102,88},{100,122},{103,183}, {183,86},{180,132},{187,189}, {150,74},{150,105},{153, 182}};
     vector<pair<RectangleImage, vector<int>>> bubbles;
@@ -665,6 +715,10 @@ void windowManager::carWash() {
     buttonHitbox.setFillColor(Color(67,67,67));
 
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         bool valid = true;
         for (int i : sprayCount)
             valid = (i >= 2) && valid;
@@ -724,19 +778,24 @@ void windowManager::carWash() {
         window.display();
 
         if (triggers[2]) {
+            creationManager::playSound("happy");
             sleep(chrono::seconds(2));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
 
         for (int i = 0; i < bubbleCoords.size(); i++) {
             if (soap.rectangle.getGlobalBounds().contains(Vector2f(bubbleCoords[i].first, bubbleCoords[i].second))) {
                 if (bubbles[i].second[carDir] == 0) {
+                    creationManager::playSound("button");
                     bubbleCount++;
                     bubbles[i].second[carDir] = 1;
                 }
             }
             if (cloth.rectangle.getGlobalBounds().contains(bubbles[i].first.rectangle.getPosition())) {
                 if (bubbles[i].second[carDir] == 1) {
+                    creationManager::playSound("buy");
                     shineCount++;
                     bubbles[i].second[carDir] = 2;
                 }
@@ -766,6 +825,7 @@ void windowManager::carWash() {
                     } else if (!triggers[0]) {
                         sprayCount[carDir]++;
                         sprayDelay = totals.tick + 1;
+                        creationManager::playSound("buy");
                         spraySFX.rectangle.setPosition(mousePos - Vector2f(15, 15));
                     }
                 }
@@ -777,7 +837,7 @@ void windowManager::carWash() {
 void windowManager::dishWash() {
     vector<bool> triggers(4, false);
     vector<int> activePlates;
-    int plateCount = 0, curPlate = -1;
+    int plateCount = 0, curPlate = -1, lastMusic = totals.time;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Open the door");
     utilitiesManager::textRecenter(instructions, "middle");
     RectangleImage dishWasher = creationManager::defineRectangleImage("closeWasher", Vector2f(150,200), Vector2f(150,150));
@@ -792,10 +852,15 @@ void windowManager::dishWash() {
     buttonHitbox.setFillColor(Color(67,67,67));
 
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         Vector2f mouseCoords = Vector2f(Mouse::getPosition(window));
         window.clear(Color(0,1,0));
         if (plateCount >= plates.size() && !triggers[1]) {
             instructions.setString("Close the Door");
+            creationManager::playSound("button");
             utilitiesManager::textRecenter(instructions, "middle");
             triggers[1] = true;
         }
@@ -823,7 +888,10 @@ void windowManager::dishWash() {
         window.display();
 
         if (triggers[3]) {
+            creationManager::playSound("happy");
             sleep(chrono::seconds(3));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
 
@@ -843,6 +911,7 @@ void windowManager::dishWash() {
                         if (dishWasher.rectangle.getGlobalBounds().contains(mousePos))
                             if (!triggers[0]) {
                                 triggers[0] = true;
+                                creationManager::playSound("button");
                                 creationManager::defineTexture(dishWasher.texture, "openWasher");
                                 instructions.setString("put in plates from the stack");
                                 utilitiesManager::textRecenter(instructions, "middle");
@@ -879,7 +948,7 @@ void windowManager::dishWash() {
 
 void windowManager::cheerUp() {
     vector<bool> triggers(4, false);
-    int pettingStart = -1, pettingTime = -1, petCount = 0;
+    int pettingStart = -1, pettingTime = -1, petCount = 0, lastMusic = totals.time;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Wipe Tears");
     utilitiesManager::textRecenter(instructions, "middle");
     vector<RectangleImage> tears;
@@ -891,7 +960,10 @@ void windowManager::cheerUp() {
     RectangleShape noseHitbox = creationManager::defineRectangle(20,20, 150, 130);
 
     while (window.isOpen()) {
-
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         if (tears.size() == 0 && !triggers[0]) {
             triggers[0] = true;
             instructions.setString("Pet " + stats.name);
@@ -931,7 +1003,10 @@ void windowManager::cheerUp() {
         window.display();
 
         if (triggers[2]) {
+            creationManager::playSound("happy");
             sleep(chrono::seconds(2));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
 
@@ -949,6 +1024,7 @@ void windowManager::cheerUp() {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = Vector2f(mousePressed->position);
                     if (triggers[0] && !triggers[1]) {
+                        creationManager::playSound("happy");
                         pettingStart = totals.tick, pettingTime = 27;
                         petCount++;
                     } else if (triggers[1] && noseHitbox.getGlobalBounds().contains(mousePos)) {
@@ -966,7 +1042,7 @@ void windowManager::cheerUp() {
 void windowManager::brushPet() {
     vector<bool> triggers(4,false);
     bool paceForward = true;
-    int timeCorrect = 0, lastTick = totals.tick, pace = 1;
+    int timeCorrect = 0, lastTick = totals.tick, pace = 1, lastMusic = totals.time, lastSound = totals.time;
     Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Follow The Sparkles");
     utilitiesManager::textRecenter(instructions, "middle");
     RectangleImage cat = creationManager::defineRectangleImage(stats.type + "Normal", Vector2f(250,250), Vector2f(150,125));
@@ -974,6 +1050,10 @@ void windowManager::brushPet() {
     RectangleImage paceSetter = creationManager::defineRectangleImage("sparkles", Vector2f(30,150), Vector2f(80,110));
 
     while (window.isOpen()) {
+        if (totals.time >= lastMusic) {
+            creationManager::playSound("background");
+            lastMusic = totals.time + 50;
+        }
         if (timeCorrect >= 10 && !triggers[0]) {
             pace += 2;
             triggers[0] = true;
@@ -1018,12 +1098,18 @@ void windowManager::brushPet() {
         if (paceSetter.rectangle.getGlobalBounds().contains(mouseCoords)) {
             if (lastTick != totals.tick) {
                 lastTick = totals.tick;
+                if (lastSound <= totals.time) {
+                    creationManager::playSound("happy");
+                    lastSound = totals.time + 1;
+                }
                 timeCorrect++;
             }
         }
 
         if (triggers[3]) {
             sleep(chrono::seconds(2));
+            creationManager::stopSound();
+            creationManager::playSound("close");
             break;
         }
         while (const optional event = window.pollEvent()) {
@@ -1098,6 +1184,7 @@ void windowManager::taskMenu() {
                     for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < taskOrder.size(); i++) {
                         listItem& item = taskList[taskOrder[i]];
                         if (item.buy.rectangle.getGlobalBounds().contains(mousePos)) {
+                            creationManager::playSound("open");
                             switch (item.id) {
                                 case 0:
                                     stats.hunger += foodMini();
@@ -1156,8 +1243,10 @@ void windowManager::taskMenu() {
                         pageNum--;
                     else if (arrowForward.rectangle.getGlobalBounds().contains(mousePos) && (int)pageNum + 1 <= taskOrder.size()/3 && (float)taskOrder.size()/3 != pageNum + 1)
                         pageNum++;
-                    else if (close.rectangle.getGlobalBounds().contains(mousePos))
+                    else if (close.rectangle.getGlobalBounds().contains(mousePos)) {
+                        creationManager::playSound("close");
                         return;
+                    }
                 }
             }
         }
