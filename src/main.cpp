@@ -22,13 +22,13 @@ int main() {
     
     //Takes in saved stats from txt file
     utilities.takeInStats();
-    stats.hash = utilities.hasher(stats.record);
     if (stats.hash != utilities.hasher(stats.record))
         return 0;
 
-    
+    creations.playSound("happy");
     lastClick = totals.tick;
-    int hungerBacklog = 0, pastHunger = stats.hunger, hungerDifference = 0;
+    bool tutTrigger = false;
+    int hungerBacklog = 0, pastHunger = stats.hunger, hungerDifference = 0, tutDisplay = totals.time + 5;
     
     //Can copy paste line for in context erroring
     //MessageBox(NULL, "hELLO", "Debug", MB_OK);
@@ -63,8 +63,8 @@ int main() {
     hungerBar.setOrigin(Vector2f(15,75));
     hungerBar.rotate(degrees(180));
 
-    Text hungerText = creations.defineText(20, 0, 0, LIGHT_GREEN, to_string(stats.hunger));
-    Text moneyText = creations.defineText(20, 0, 30, LIGHT_GREEN, to_string(stats.money));
+    Text tutorial = creations.defineText(15, 150, 30, LIGHT_GREEN, "    Hi! Lets explore what\n you can do with your pet");
+    utilities.textRecenter(tutorial, "middle");
     
     if (stats.record[stats.record.size() - 1] - '0' == 0)
         stats.name = windows.enterName();
@@ -80,6 +80,18 @@ int main() {
     utilities.save();
 
     while (window.isOpen()) {
+        if (stats.record[stats.record.size() - 5] == '1') {
+            tutorial.setString("Go to the tasks menu");
+            utilities.textRecenter(tutorial, "middle");
+        } else if (totals.time > tutDisplay) {
+            if (!tutTrigger) {
+                tutorial.setString("  The bar on the right is\n hunger its looking low");
+                tutTrigger = true;
+                tutDisplay += 4;
+            } else
+                tutorial.setString("  We can fix that with the shop\n             hit the button\n          on the left to go");
+            utilities.textRecenter(tutorial, "middle");
+        }
         sleepy = stats.record[5] - '0' && totals.tick - lastClick >= 180 || sleepy;
         window.clear(Color(0,1,0));
  
@@ -123,7 +135,11 @@ int main() {
         window.draw(barBase.rectangle);
         window.draw(tasksButton.rectangle);
         window.draw(shopButton.rectangle);
-        window.draw(nameText);
+
+        if (stats.record[stats.record.size() - 4] == '0')
+            window.draw(tutorial);
+        else
+            window.draw(nameText);
 
         window.display();
 
@@ -135,7 +151,6 @@ int main() {
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
-                    
                     if (shopButton.rectangle.getGlobalBounds().contains(mousePos)) {
                         if (!sleepy) {
                             creations.playSound("open");

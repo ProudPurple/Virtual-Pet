@@ -55,7 +55,7 @@ void utilitiesManager::background() {
     while (true && running) {
         totals.tick++;
         
-        if (totals.tick % (stats.mood == "Sick" ? 3 : 10) == 0 && stats.hunger >= 0 && !sleepy)
+        if (totals.tick % (stats.mood == "Sick" ? 10 : 20) == 0 && stats.hunger >= 0 && !sleepy)
             stats.hunger--;
         else if (stats.hunger > 100)
             stats.hunger = 100;

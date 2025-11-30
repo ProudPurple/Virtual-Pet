@@ -40,24 +40,24 @@ void windowManager::petType() {
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     if (select.rectangle.getGlobalBounds().contains(mousePos) && type != "N/A") {
                         stats.type = type;
-                        creationManager::playSound("close");
+                        creationManager::playSound("happy");
                         return;
                     } else if (dog.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("close");
+                        creationManager::playSound("button");
                         type = "dog";
                         dog.rectangle.setSize(Vector2f(90,90));
                         cat.rectangle.setSize(Vector2f(75,75));
                         bear.rectangle.setSize(Vector2f(75,75));
                         dog.rectangle.setPosition(Vector2f(50,150));
                     } else if (cat.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("close");
+                        creationManager::playSound("button");
                         type = "cat";
                         dog.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setSize(Vector2f(90,90));
                         bear.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setPosition(Vector2f(150,150));
                     } else if (bear.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("close");
+                        creationManager::playSound("button");
                         type = "bear";
                         dog.rectangle.setSize(Vector2f(75,75));
                         cat.rectangle.setSize(Vector2f(75,75));
@@ -99,7 +99,7 @@ string windowManager::enterName() {
             }
         }
     }
-    creationManager::playSound("close");
+    creationManager::playSound("happy");
     return nameText.getString();
 }
 
@@ -113,17 +113,19 @@ void windowManager::shopMenu() {
     Angle flip = degrees(180);
     arrowBackward.rectangle.rotate(flip);
     Text money = creationManager::defineText(10, 15, 15, DEFAULT_GREEN, '$' + to_string(stats.money));
+    Text tutorial = creationManager::defineText(10, 150, 10, LIGHT_GREEN, stats.record[stats.record.size() - 5] == '1' ? "Ok lets use it. exit the shop" : "Buy some Food");
+    utilitiesManager::textRecenter(tutorial, "middle");
     vector<listItem> shopItems;
     vector<int> itemOrder;
     shopItems.push_back(creationManager::defineListItem("foodBag", "Food", "FEED", 5, 0));
     shopItems.push_back(creationManager::defineListItem("medKit", "Healing", "Lets you help\na sick pet", 15, 1));
-    shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 0, 2));
-    shopItems.push_back(creationManager::defineListItem("frisbee", "Frisbee", "Play with your pet", 5, 3));
-    shopItems.push_back(creationManager::defineListItem("close", "Brush", "Groom Your Pet", 25, 4));
-    shopItems.push_back(creationManager::defineListItem("closeWasher", "DishWasher", "Clean Dishes for your parents", 50, 5));
-    shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 10, 6));
+    shopItems.push_back(creationManager::defineListItem("Hand", "TAKE MY HAND", "ILL THINK ABOUT IT", 15, 2));
+    shopItems.push_back(creationManager::defineListItem("frisbee", "Frisbee", "Play with your pet", 30, 3));
+    shopItems.push_back(creationManager::defineListItem("brush", "Brush", "Groom Your Pet", 35, 4));
+    shopItems.push_back(creationManager::defineListItem("closeWasher", "DishWasher", "Clean Dishes for your parents", 20, 5));
+    shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 30, 6));
     shopItems.push_back(creationManager::defineListItem("catSleepy", "Sleep", "Let your cat rest decreasing\nhunger lost when inactive", 50, 7));
-    shopItems.push_back(creationManager::defineListItem(stats.type + "Rich", "MONEY", "SO MONEY", 100, 8));
+    shopItems.push_back(creationManager::defineListItem(stats.type + "Rich", "MONEY", "SO MONEY", 250, 8));
     for (int i = 0; i < shopItems.size(); i++) {
         if (stats.record[shopItems[i].id] == '0') {
             itemOrder.push_back(shopItems[i].id);
@@ -133,6 +135,7 @@ void windowManager::shopMenu() {
         }
     }
 
+    creationManager::playSound("open");
 
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
@@ -148,6 +151,8 @@ void windowManager::shopMenu() {
             window.draw(shopItems[ind].title);
         }
         window.draw(money);
+        if (stats.record[stats.record.size() - 4] == '0')
+            window.draw(tutorial);
 
         if ((int)pageNum + 1 <= itemOrder.size()/3 && (float)itemOrder.size()/3 != pageNum + 1)
             window.draw(arrowForward.rectangle);
@@ -167,6 +172,11 @@ void windowManager::shopMenu() {
                         int ind = itemOrder[i];
                         if (shopItems[ind].buy.rectangle.getGlobalBounds().contains(mousePos)) {
                             if (stats.money >= stoi((string)shopItems[ind].cost.getString())) {
+                                if (ind == 0) {
+                                    stats.record[stats.record.size() - 5] = '1';
+                                    tutorial.setString("Ok Lets use it. exit the shop");
+                                    utilitiesManager::textRecenter(tutorial, "middle");
+                                }
                                 stats.record[ind] = '1';
                                 stats.money -= stoi((string)shopItems[ind].cost.getString());
                                 totals.moneySpent += stoi((string)shopItems[ind].cost.getString());
@@ -197,6 +207,8 @@ void windowManager::statDisplay() {
     RectangleImage background = creationManager::defineRectangleImage("shopWindow", Vector2f(300,200), Vector2f(150,100));
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
     Text title = creationManager::defineText(15, 150, 20, DEFAULT_GREEN, "Stat Report");
+    Text tutorial = creationManager::defineText(10,150,10,LIGHT_GREEN, "         This page has everything you need\n    and marks the end of the tutorial. have fun!");
+    utilitiesManager::textRecenter(tutorial, "middle");
     utilitiesManager::textRecenter(title, "middle");
     vector<Text> statList;
     statList.push_back(creationManager::defineText(10, 75, 155, DEFAULT_GREEN, "Money Spent: " + to_string(totals.moneySpent)));
@@ -231,6 +243,8 @@ void windowManager::statDisplay() {
         window.draw(background.rectangle);
         window.draw(close.rectangle);
         window.draw(title);
+        if (stats.record[stats.record.size() - 3] == '0')
+            window.draw(tutorial);
         for (auto txt : statList)
             window.draw(txt);
         window.display();
@@ -263,7 +277,12 @@ int windowManager::foodMini() {
     foodBag.rectangle.rotate(degrees(180));
     int foodTotal = 0, speed = 2, curTick = totals.tick, offset = 4, start = totals.time, lastMusic = totals.time;
     bool movement = false;
-    while (window.isOpen() && totals.time <= start + 14) {
+    while (window.isOpen()) {
+        if (totals.time > start + 14) {
+            creationManager::stopSound();
+            creationManager::playSound("close");
+            return foodTotal;
+        }
         if (totals.time >= lastMusic) {
             creationManager::playSound("background");
             lastMusic = totals.time + 50;
@@ -323,9 +342,7 @@ int windowManager::foodMini() {
             }
         }
     }
-    creationManager::stopSound();
-    creationManager::playSound("close");
-    return foodTotal;
+    return -1000000;
 }
 
 void windowManager::vetVisit() {
@@ -484,7 +501,7 @@ void windowManager::takeOutTrash() {
     trash[5].rectangle.setPosition(Vector2f(240, 220));
     trash[6].rectangle.setPosition(Vector2f(172, 220));
     int trashCount = 0, curTrash = -1, lastMusic = totals.time;
-    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Trash and Put it In the Bin");
+    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Grab The Trash and\n    Put it In the Bin");
     utilitiesManager::textRecenter(instructions, "middle");
     RectangleImage trashBin = creationManager::defineRectangleImage("trashBin", Vector2f(40,50), Vector2f(260,210));
     RectangleImage dumpster = creationManager::defineRectangleImage("openDumpster", Vector2f(100, 140), Vector2f(150, 145));
@@ -838,7 +855,7 @@ void windowManager::dishWash() {
     vector<bool> triggers(4, false);
     vector<int> activePlates;
     int plateCount = 0, curPlate = -1, lastMusic = totals.time;
-    Text instructions = creationManager::defineText(15, 150, 30, DEFAULT_GREEN, "Open the door");
+    Text instructions = creationManager::defineText(15, 150, 200, DEFAULT_GREEN, "Open the door");
     utilitiesManager::textRecenter(instructions, "middle");
     RectangleImage dishWasher = creationManager::defineRectangleImage("closeWasher", Vector2f(150,200), Vector2f(150,150));
     RectangleImage plateStack = creationManager::defineRectangleImage("plateStack", Vector2f(40,80), Vector2f(150,50));
@@ -1132,6 +1149,8 @@ void windowManager::taskMenu() {
     RectangleImage close = creationManager::defineRectangleImage("close", Vector2f(30,27.5), Vector2f(280,20));
     RectangleImage arrowForward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(280,180));
     RectangleImage arrowBackward = creationManager::defineRectangleImage("cornerGo", Vector2f(30,30), Vector2f(20,180));
+    Text tutorial = creationManager::defineText(10, 150, 10, LIGHT_GREEN, stats.record[stats.record.size() - 4] == '1' ? "Finally look at your status" : "Feed your pet");
+    utilitiesManager::textRecenter(tutorial, "middle");
     arrowBackward.rectangle.rotate(degrees(180));
 
     int pageNum = 0;
@@ -1151,6 +1170,8 @@ void windowManager::taskMenu() {
     utilitiesManager::taskListCheck(taskList, taskOrder);
     taskOrder.push_back(taskList.size() - 1);
     
+    creationManager::playSound("open");
+
     while (window.isOpen()) {
         if (totals.tick % 10 == 0) {
             utilitiesManager::taskListCheck(taskList, taskOrder);
@@ -1158,6 +1179,8 @@ void windowManager::taskMenu() {
         }
         window.clear(Color(0,1,0));
         window.draw(background.rectangle);
+        if (stats.record[stats.record.size() - 3] == '0' && stats.record[stats.record.size() - 5] == '1')
+            window.draw(tutorial);
         window.draw(close.rectangle);
         if ((int)pageNum + 1 <= taskOrder.size()/3 && (float)taskOrder.size()/3 != pageNum + 1)
             window.draw(arrowForward.rectangle);
@@ -1187,6 +1210,9 @@ void windowManager::taskMenu() {
                             creationManager::playSound("open");
                             switch (item.id) {
                                 case 0:
+                                    stats.record[stats.record.size() - 4] = '1';
+                                    tutorial.setString("Finally look at the status");
+                                    utilitiesManager::textRecenter(tutorial, "middle");
                                     stats.hunger += foodMini();
                                     stats.record[0] = '0';
                                     totals.foodEaten++;
@@ -1207,8 +1233,8 @@ void windowManager::taskMenu() {
                                 case 4:
                                     takeOutTrash();
                                     trashDelay = totals.time + 60;
-                                    break;
                                     stats.money += 20;
+                                    break;
                                 case 5:
                                     dishWash();
                                     dishDelay = totals.time + 90;
@@ -1217,8 +1243,8 @@ void windowManager::taskMenu() {
                                 case 6:
                                     carWash();
                                     carWashDelay = totals.time + 120;
-                                    break;
                                     stats.money += 30;
+                                    break;
                                 case 7:
                                     stats.happiness += playFrisbee();
                                     frisbeeDelay = 60 + totals.time;
@@ -1230,11 +1256,12 @@ void windowManager::taskMenu() {
                                     break;
                                 case 9:
                                     statDisplay();
+                                    stats.record[stats.record.size() - 3] = '1';
                                     break;
                             }
                             if (item.id != 9)
                                 taskOrder.erase(taskOrder.begin() + i);
-                            if (rand() % 3 == 0 && item.id != taskOrder.size() - 1 && item.id != 2)
+                            if (rand() % 3 == 0 && item.id != 9 && item.id != 2 && stats.record[stats.record.size() - 3] == '1')
                                 stats.mood = "Dirty";
                             break;
                         }
