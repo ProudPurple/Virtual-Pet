@@ -18,8 +18,6 @@ int main() {
     
     //Takes in saved stats from txt file
     utilities.takeInStats();
-    stats.hash = utilities.hasher(stats.record);
-    utilities.save();
     if (stats.hash != utilities.hasher(stats.record))
         return 0;
 

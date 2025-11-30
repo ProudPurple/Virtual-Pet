@@ -135,8 +135,6 @@ void windowManager::shopMenu() {
         }
     }
 
-    creationManager::playSound("open");
-
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
         money.setString('$' + to_string(stats.money));
@@ -895,13 +893,14 @@ void windowManager::dishWash() {
                 if (find(activePlates.begin(), activePlates.end(), i) != activePlates.end())
                     window.draw(plates[i].rectangle);
             }
+            for (auto slot : slots)
+                window.draw(slot);
             if (curPlate != -1) {
                 plates[curPlate].rectangle.setPosition(mouseCoords);
                 window.draw(plates[curPlate].rectangle);
             }
         }
         window.draw(instructions);
-
         window.display();
 
         if (triggers[3]) {
@@ -1169,8 +1168,6 @@ void windowManager::taskMenu() {
     
     utilitiesManager::taskListCheck(taskList, taskOrder);
     taskOrder.push_back(taskList.size() - 1);
-    
-    creationManager::playSound("open");
 
     while (window.isOpen()) {
         if (totals.tick % 10 == 0) {
