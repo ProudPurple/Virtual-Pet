@@ -9,16 +9,16 @@ void windowManager::petType() {
     Text instruction = creationManager::defineText(25, 150,50, DEFAULT_GREEN, "   What Type of\nPet Do You Want");
     Text typeTxt = creationManager::defineText(20, 150, 100, DEFAULT_GREEN, "");
     utilitiesManager::textRecenter(instruction, "middle");
-    RectangleImage dog = creationManager::defineRectangleImage("dogNormal", Vector2f(75,75), Vector2f(50,150));
-    RectangleImage cat = creationManager::defineRectangleImage("catNormal", Vector2f(75,75), Vector2f(150,150));
-    RectangleImage bear = creationManager::defineRectangleImage("bearNormal", Vector2f(75,75), Vector2f(250,150));
+    vector<RectangleImage> options(3);
+    options[0] = creationManager::defineRectangleImage("dogNormal", Vector2f(75,75), Vector2f(50,150));
+    options[1] = creationManager::defineRectangleImage("catNormal", Vector2f(75,75), Vector2f(150,150));
+    options[2] = creationManager::defineRectangleImage("bearNormal", Vector2f(75,75), Vector2f(250,150));
     RectangleImage select = creationManager::defineRectangleImage("select", Vector2f(150,50), Vector2f(150,200));
     while (window.isOpen()) {
         window.clear(Color(0,1,0));
-        window.draw(dog.rectangle);
         window.draw(typeTxt);
-        window.draw(cat.rectangle);
-        window.draw(bear.rectangle);
+        for (auto option : options)
+            window.draw(option.rectangle);
         window.draw(instruction);
         window.draw(select.rectangle);
 
@@ -42,27 +42,20 @@ void windowManager::petType() {
                         stats.type = type;
                         creationManager::playSound("happy");
                         return;
-                    } else if (dog.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("button");
-                        type = "dog";
-                        dog.rectangle.setSize(Vector2f(90,90));
-                        cat.rectangle.setSize(Vector2f(75,75));
-                        bear.rectangle.setSize(Vector2f(75,75));
-                        dog.rectangle.setPosition(Vector2f(50,150));
-                    } else if (cat.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("button");
-                        type = "cat";
-                        dog.rectangle.setSize(Vector2f(75,75));
-                        cat.rectangle.setSize(Vector2f(90,90));
-                        bear.rectangle.setSize(Vector2f(75,75));
-                        cat.rectangle.setPosition(Vector2f(150,150));
-                    } else if (bear.rectangle.getGlobalBounds().contains(mousePos)) {
-                        creationManager::playSound("button");
-                        type = "bear";
-                        dog.rectangle.setSize(Vector2f(75,75));
-                        cat.rectangle.setSize(Vector2f(75,75));
-                        bear.rectangle.setSize(Vector2f(90,90));
-                        bear.rectangle.setPosition(Vector2f(250,150));
+                    } else {
+                        for (int i = 0; i < 3; i++) {
+                            if (options[i].rectangle.getGlobalBounds().contains(mousePos)) {
+                                creationManager::playSound("button");
+                                if (i == 0) type = "dog";
+                                else if (i == 1) type = "cat";
+                                else type = "bear";
+                                options[i].rectangle.setPosition(Vector2f(i * 100 + 42.5, 142.5));
+                                options[i].rectangle.setSize(Vector2f(90,90));
+                            } else {
+                                options[i].rectangle.setPosition(Vector2f(i * 100 + 50, 150));
+                                options[i].rectangle.setSize(Vector2f(75,75));
+                            }
+                        }
                     }
                 }
             }
@@ -92,7 +85,7 @@ string windowManager::enterName() {
                     nameText.setString(temp);
                 } else if (text == 13) {
                     typing = false;
-                } else if (nameText.getString().getSize() <= 10 && text != 8) {
+                } else if (nameText.getString().getSize() <= 10 && text != 8 && text != 32) {
                     nameText.setString(nameText.getString() + text);
                 }
                 utilitiesManager::textRecenter(nameText, "middle");
@@ -124,7 +117,7 @@ void windowManager::shopMenu() {
     shopItems.push_back(creationManager::defineListItem("brush", "Brush", "Groom Your Pet", 35, 4));
     shopItems.push_back(creationManager::defineListItem("closeWasher", "DishWasher", "Clean Dishes for your parents", 20, 5));
     shopItems.push_back(creationManager::defineListItem("soapBottle", "Cleaning Supplies", "Clean Broto", 30, 6));
-    shopItems.push_back(creationManager::defineListItem("catSleepy", "Sleep", "Let your cat rest decreasing\nhunger lost when inactive", 50, 7));
+    shopItems.push_back(creationManager::defineListItem(stats.type + "Sleepy", "Sleep", "Let your cat rest decreasing\nhunger lost when inactive", 50, 7));
     shopItems.push_back(creationManager::defineListItem(stats.type + "Rich", "MONEY", "SO MONEY", 250, 8));
     for (int i = 0; i < shopItems.size(); i++) {
         if (stats.record[shopItems[i].id] == '0') {
@@ -136,11 +129,13 @@ void windowManager::shopMenu() {
     }
 
     while (window.isOpen()) {
+        //Basic window setup
         window.clear(Color(0,1,0));
         money.setString('$' + to_string(stats.money));
         window.draw(background.rectangle);
         window.draw(close.rectangle);
         for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
+            //Draws only first 3 after the pageNum * 3 so a pageNum of 2 makes it draw items 6, 7, and 8
             int ind = itemOrder[i];
             window.draw(shopItems[ind].image.rectangle);
             window.draw(shopItems[ind].buy.rectangle);
@@ -149,9 +144,11 @@ void windowManager::shopMenu() {
             window.draw(shopItems[ind].title);
         }
         window.draw(money);
+        //Tutorial Check
         if (stats.record[stats.record.size() - 4] == '0')
             window.draw(tutorial);
 
+        //Detects if you can move right or left in pages and only draws if possible
         if ((int)pageNum + 1 <= itemOrder.size()/3 && (float)itemOrder.size()/3 != pageNum + 1)
             window.draw(arrowForward.rectangle);
         if ((int)pageNum > 0)
@@ -159,15 +156,19 @@ void windowManager::shopMenu() {
 
         window.display();
 
+        //Main event loop
         while (const optional event = window.pollEvent()) {
             if (event->is<Event::Closed>()) {
+                //Ensures closing is valid
                 utilitiesManager::close(window);
             }
             if (const auto* mousePressed = event->getIf<Event::MouseButtonPressed>()) {
                 if (mousePressed->button == Mouse::Button::Left) {
+                    //Checks if a mousePressed event has been enacted and if it is the left mouse button
                     Vector2f mousePos = window.mapPixelToCoords(mousePressed->position);
                     for (int i = pageNum * 3; i <= pageNum * 3 + 2 && i < itemOrder.size(); i++) {
                         int ind = itemOrder[i];
+                        //Looks for only the drawn items in item order to identify the ids of the possible click options
                         if (shopItems[ind].buy.rectangle.getGlobalBounds().contains(mousePos)) {
                             if (stats.money >= stoi((string)shopItems[ind].cost.getString())) {
                                 if (ind == 0) {
@@ -176,6 +177,7 @@ void windowManager::shopMenu() {
                                     utilitiesManager::textRecenter(tutorial, "middle");
                                 }
                                 stats.record[ind] = '1';
+                                //Takes away the money and adjust the list then adding to record that the item was purchased
                                 stats.money -= stoi((string)shopItems[ind].cost.getString());
                                 totals.moneySpent += stoi((string)shopItems[ind].cost.getString());
                                 for (int j = i + 1; j < itemOrder.size(); j++)

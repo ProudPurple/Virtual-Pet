@@ -18,8 +18,8 @@ int main() {
     
     //Takes in saved stats from txt file
     utilities.takeInStats();
-    if (stats.hash != utilities.hasher(stats.record))
-        return 0;
+    //if (stats.hash != utilities.hasher(stats.record))
+     //   return 0;
 
     creations.playSound("happy");
     lastClick = totals.tick;

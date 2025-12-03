@@ -11,6 +11,7 @@
 int utilitiesManager::hasher(string record) {
     int i = 0;
     for (char c : record) {
+        //Numeric Algorithm that acts as a simple encoder
         i += c - '0' + 3;
         i *= 2;
         i -= 7;
@@ -19,6 +20,7 @@ int utilitiesManager::hasher(string record) {
 }
 
 void utilitiesManager::takeInStats() {
+    //Declares file input stream to be via stats.txt and takes in everything saved
     ifstream fin("stats.txt");
     fin >> stats.hunger >> stats.money >> stats.happiness >> stats.record >> stats.hash;
     fin >> stats.name >> stats.type >> stats.mood;
@@ -26,6 +28,7 @@ void utilitiesManager::takeInStats() {
 }
 
 void utilitiesManager::save() {
+    //Declares file outpout to be stats.txt and overwrites the contents with everything to be saved
     ofstream fout("stats.txt");
     fout << stats.hunger << ' '
     << stats.money << ' '
@@ -45,6 +48,7 @@ void utilitiesManager::save() {
 }
 
 void utilitiesManager::close(RenderWindow& window) {
+    //Closes window shutting down all active window loops and exists threads before saving
     window.close();
     running = false;
     backgroundThread.join();
@@ -53,8 +57,8 @@ void utilitiesManager::close(RenderWindow& window) {
 
 void utilitiesManager::background() {
     while (true && running) {
+        //Enacts all background actions and creates a tick system
         totals.tick++;
-        
         if (totals.tick % (stats.mood == "Sick" ? 10 : 20) == 0 && stats.hunger >= 0 && !sleepy)
             stats.hunger--;
         else if (stats.hunger > 100)
@@ -74,6 +78,7 @@ void utilitiesManager::background() {
 }
 
 void utilitiesManager::moodManager() {
+    //Checks for specific conditions such as happiness and hunger to create states and maintain them
     if (stats.happiness <= 70 && totals.tick % 120 == 0 && rand() % 3 == 0 || stats.mood == "Sick" && !sleepy) {
         if (stats.mood != "Sick")
             totals.timesSick++;
